@@ -1,0 +1,23 @@
+name: Test pro_venv.py
+
+on: [push, pull_request]
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal requirements (if any)
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Run pro_venv.py
+        run: |
+          python pro_venv.py
