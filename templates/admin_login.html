@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Admin Login</h2>
+<form action="/admin/login" method="post">
+  <label>Password</label>
+  <input type="password" name="password" required/>
+  <button type="submit">Login</button>
+</form>
+{% endblock %}

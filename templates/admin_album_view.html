@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>Album: {{ album.title }}</h2>
+
+<section>
+  <h3>Upload Files</h3>
+  <form action="/admin/albums/{{ album.id }}/upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="files" multiple required />
+    <button type="submit">Upload</button>
+  </form>
+</section>
+
+<section>
+  <h3>Assets</h3>
+  {% if assets|length == 0 %}
+    <p>No files yet.</p>
+  {% else %}
+    <div class="grid">
+      {% for a in assets %}
+        <div class="card">
+          {% if a.thumb %}
+            <img src="{{ a.thumb }}" alt="thumb"/>
+          {% endif %}
+          <div class="caption">{{ a.name }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Create Share Link</h3>
+  <form action="/admin/albums/{{ album.id }}/share" method="post">
+    <label>Expires At (ISO)</label>
+    <input type="text" name="expires_at" placeholder="2025-09-03T23:59:59" />
+    <label>Password (optional)</label>
+    <input type="password" name="password" />
+    <label><input type="checkbox" name="allow_zip" checked/> Allow ZIP download</label>
+    <button type="submit">Create Share</button>
+  </form>
+</section>
+{% endblock %}

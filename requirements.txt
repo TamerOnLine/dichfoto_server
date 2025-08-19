@@ -1,0 +1,9 @@
+# Add your dependencies here
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+SQLAlchemy==2.0.35
+Jinja2==3.1.4
+python-multipart==0.0.20
+passlib[bcrypt]==1.7.4
+Pillow==10.4.0
+python-slugify==8.0.4

@@ -1,0 +1,29 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <h2>{{ album.title if album else 'Album' }}</h2>
+
+  {% if locked %}
+    <p>This album is protected. Enter the password to continue.</p>
+    <form action="/s/{{ share.slug }}/unlock" method="post">
+      <input type="password" name="password" required />
+      <button type="submit">Unlock</button>
+    </form>
+  {% else %}
+    <div class="toolbar">
+      <a class="btn" href="/s/{{ share.slug }}/download">Download all as ZIP</a>
+    </div>
+
+    {% if assets|length == 0 %}
+      <p>No files available.</p>
+    {% else %}
+      <div class="grid">
+        {% for a in assets %}
+          <a class="card link" href="{{ a.url }}">
+            {% if a.thumb %}<img src="{{ a.thumb }}" alt="" />{% endif %}
+            <div class="caption">{{ a.name }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}

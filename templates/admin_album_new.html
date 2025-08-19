@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h2>New Album</h2>
+<form action="/admin/albums/new" method="post">
+  <label>Title</label>
+  <input type="text" name="title" required />
+
+  <label>Photographer (optional)</label>
+  <input type="text" name="photographer" />
+
+  <label>Event Date (ISO, e.g. 2025-07-19T00:00:00)</label>
+  <input type="text" name="event_date" />
+
+  <button type="submit">Create</button>
+</form>
+{% endblock %}
