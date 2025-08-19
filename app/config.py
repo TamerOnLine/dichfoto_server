@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
@@ -13,10 +13,12 @@ class Settings(BaseSettings):
     THUMBS_DIR: Path = STORAGE_DIR / "_thumbs"
     THUMB_MAX_WIDTH: int = 800
 
-    class Config:
-        env_file = str(BASE_DIR / ".env")
+    # Pydantic v2 style
+    model_config = SettingsConfigDict(
+        env_file=str(BASE_DIR / ".env"),
+        env_file_encoding="utf-8",
+    )
 
 settings = Settings()
-# Ensure storage dirs exist at startup time (ok in dev)
 settings.STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 settings.THUMBS_DIR.mkdir(parents=True, exist_ok=True)
