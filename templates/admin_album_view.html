@@ -15,11 +15,11 @@
   {% if assets|length == 0 %}
     <p>No files yet.</p>
   {% else %}
-    <div class="grid">
+    <div class="grid masonry">
       {% for a in assets %}
         <div class="card">
           {% if a.thumb %}
-            <img src="{{ a.thumb }}" alt="thumb"/>
+            <img src="{{ a.thumb }}" alt="{{ a.name }}" loading="lazy" decoding="async" />
           {% endif %}
           <div class="caption">{{ a.name }}</div>
         </div>

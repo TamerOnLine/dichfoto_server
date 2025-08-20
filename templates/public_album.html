@@ -1,6 +1,10 @@
 {% extends 'layout.html' %}
 {% block content %}
-  <h2>{{ album.title if album else 'Album' }}</h2>
+
+  <style>
+    header { display: none; }
+    main.container { padding-top: 0; }
+  </style>
 
   {% if locked %}
     <p>This album is protected. Enter the password to continue.</p>
@@ -9,6 +13,41 @@
       <button type="submit">Unlock</button>
     </form>
   {% else %}
+
+    {% if assets|length > 0 %}
+      {% set hero = assets[0] %}
+      <section id="hero" class="hero">
+        <!-- صورة الغلاف -->
+        <img class="hero-img"
+             src="{{ hero.thumb or hero.url }}"
+             srcset="{{ hero.thumb }} 800w, {{ hero.url }} 1600w"
+             sizes="100vw"
+             alt=""
+             fetchpriority="high" loading="eager" decoding="sync" />
+
+        <!-- أزرار علوية يمين -->
+        <div class="hero-actions">
+          <a class="icon-btn" href="/s/{{ share.slug }}/download" title="Download all">
+            <!-- download icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 21h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          <button class="icon-btn" title="Like">
+            <!-- heart icon -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-.99-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.35l8.77-8.96a5.5 5.5 0 0 0 .07-7.78Z" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- العنوان أسفل منتصف الصورة (ابقه أو احذفه حسب رغبتك) -->
+        <div class="hero-overlay">
+          <h2 class="hero-title">{{ album.title }}</h2>
+        </div>
+      </section>
+    {% endif %}
+
     <div class="toolbar">
       <a class="btn" href="/s/{{ share.slug }}/download">Download all as ZIP</a>
     </div>
@@ -16,14 +55,16 @@
     {% if assets|length == 0 %}
       <p>No files available.</p>
     {% else %}
-      <div class="grid">
-        {% for a in assets %}
-          <a class="card link" href="{{ a.url }}">
-            {% if a.thumb %}<img src="{{ a.thumb }}" alt="" />{% endif %}
-            <div class="caption">{{ a.name }}</div>
-          </a>
-        {% endfor %}
-      </div>
+      <!-- معرض يشبه Wfolio: أعمدة مع حواف بيضاء -->
+<div id="gallery" class="jg">
+  {% for a in assets[1:] %}
+    <a class="jg-item" href="{{ a.url }}">
+      <img src="{{ a.thumb }}" alt="" loading="lazy" decoding="async" />
+    </a>
+  {% endfor %}
+</div>
+
     {% endif %}
+
   {% endif %}
 {% endblock %}
