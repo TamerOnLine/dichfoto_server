@@ -1,9 +1,22 @@
 {% extends 'layout.html' %}
+
+{# إخفاء الهيدر لهذه الصفحة #}
+{% block header_class %}hide{% endblock %}
+
 {% block content %}
-<h2>Admin Login</h2>
-<form action="/admin/login" method="post">
-  <label>Password</label>
-  <input type="password" name="password" required/>
-  <button type="submit">Login</button>
-</form>
+<section class="auth">
+  <h2>Admin Login</h2>
+
+  <form action="/admin/login" method="post">
+    <label for="password">Password</label>
+    <input
+      id="password"
+      type="password"
+      name="password"
+      required
+      autocomplete="current-password"
+    />
+    <button type="submit" class="btn">Login</button>
+  </form>
+</section>
 {% endblock %}

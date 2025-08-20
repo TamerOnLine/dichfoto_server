@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{(BASE_DIR / 'app.db').as_posix()}"
     SECRET_KEY: str = "change-me"
     ADMIN_PASSWORD: str = "admin123"
-    SITE_TITLE: str = "Client Gallery"
+    SITE_TITLE: str = "Dich Foto"
 
     STORAGE_DIR: Path = BASE_DIR / "storage"
     THUMBS_DIR: Path = STORAGE_DIR / "_thumbs"
