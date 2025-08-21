@@ -155,6 +155,7 @@ publish_test.py
 venv_switcher.py
 summary_tree.txt
 Dev_requirements.txt
+
 *.exe
 
 # Local cache from the app
