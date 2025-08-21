@@ -9,3 +9,9 @@ Pillow==10.4.0
 python-slugify==8.0.4
 itsdangerous==2.2.0
 pydantic-settings
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
+zipstream-ng
+

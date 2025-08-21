@@ -3,6 +3,10 @@ from typing import Iterable
 import zipfile
 import io
 
+
+from zipstream import ZipStream
+from typing import Iterable
+
 def make_zip_in_memory(files: Iterable[Path], base_prefix: str = "") -> bytes:
     # For moderate album sizes. For massive collections, switch to streaming ZIP.
     mem = io.BytesIO()
@@ -12,3 +16,12 @@ def make_zip_in_memory(files: Iterable[Path], base_prefix: str = "") -> bytes:
             zf.write(fpath, arcname=arcname)
     mem.seek(0)
     return mem.read()
+
+
+
+def stream_zip(pairs: Iterable[tuple[str, bytes]]):
+    # pairs: (arcname, bytes_chunk_generator)
+    z = ZipStream(mode='w', compression='deflated')
+    for arcname, gen in pairs:
+        z.add(arcname, gen)
+    return z

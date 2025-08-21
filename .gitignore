@@ -160,6 +160,7 @@ Dev_requirements.txt
 # Local cache from the app
 .cache/
 storage/
+secrets/
 
 # OS junk
 .DS_Store

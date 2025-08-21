@@ -24,6 +24,9 @@ class Asset(Base):
     size = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    gdrive_file_id = Column(String, nullable=True, index=True)
+    gdrive_thumb_id = Column(String, nullable=True, index=True)
+
     album = relationship("Album", back_populates="assets")
 
 class ShareLink(Base):

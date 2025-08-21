@@ -1,6 +1,7 @@
 from PIL import Image, ImageOps
 from pathlib import Path
 from ..config import settings
+from io import BytesIO
 
 def is_image(path: Path) -> bool:
     return path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -37,3 +38,16 @@ def ensure_thumb(original: Path) -> Path | None:
         img.save(tpath)
 
     return tpath
+
+def make_thumb_bytes(original_bytes: bytes, max_w: int) -> bytes:
+    img = Image.open(BytesIO(original_bytes))
+    img = ImageOps.exif_transpose(img)
+    if img.mode in ("P", "RGBA"):
+        img = img.convert("RGB")
+    w, h = img.size
+    if w > max_w:
+        ratio = max_w / float(w)
+        img = img.resize((max_w, int(h*ratio)), Image.Resampling.LANCZOS)
+    out = BytesIO()
+    img.save(out, format="JPEG", quality=88)
+    return out.getvalue()
