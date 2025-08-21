@@ -17,13 +17,14 @@
     {% if assets|length > 0 %}
       {% set hero = assets[0] %}
       <section id="hero" class="hero">
-        <!-- صورة الغلاف -->
-        <img class="hero-img"
-             src="{{ hero.thumb or hero.url }}"
-             srcset="{{ hero.thumb }} 800w, {{ hero.url }} 1600w"
-             sizes="100vw"
-             alt=""
-             fetchpriority="high" loading="eager" decoding="sync" />
+        <a href="{{ hero.url }}" class="hero-link">
+          <img class="hero-img"
+               src="{{ hero.thumb }}"
+               srcset="{{ hero.thumb }} 800w, {{ hero.url }} 1600w"
+               sizes="100vw"
+               alt="{{ album.title }}"
+               fetchpriority="high" loading="eager" decoding="sync" />
+        </a>
 
         <!-- أزرار علوية يمين -->
         <div class="hero-actions">
@@ -41,7 +42,7 @@
           </button>
         </div>
 
-        <!-- العنوان أسفل منتصف الصورة (ابقه أو احذفه حسب رغبتك) -->
+        <!-- العنوان أسفل منتصف الصورة -->
         <div class="hero-overlay">
           <h2 class="hero-title">{{ album.title }}</h2>
         </div>
@@ -56,16 +57,16 @@
       <p>No files available.</p>
     {% else %}
       <!-- معرض يشبه Wfolio: أعمدة مع حواف بيضاء -->
-<div id="gallery" class="jg">
-  {% for a in assets[1:] %}
-    <a class="jg-item" href="{{ a.url }}">
-      <img src="{{ a.thumb }}" alt="" loading="lazy" decoding="async" />
-    </a>
-  {% endfor %}
-</div>
-
+      <div id="gallery" class="jg">
+        {% for a in assets[1:] %}
+          <a class="jg-item" href="{{ a.url }}" target="_blank" rel="noopener">
+            <img src="{{ a.thumb }}" alt="" loading="lazy" decoding="async" />
+          </a>
+        {% endfor %}
+      </div>
     {% endif %}
 
   {% endif %}
+
   <script src="/static/justified.js" defer></script>
 {% endblock %}

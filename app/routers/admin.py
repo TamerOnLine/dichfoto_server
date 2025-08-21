@@ -9,11 +9,14 @@ from typing import List, Optional
 from datetime import datetime
 from slugify import slugify
 import shutil
+from pathlib import Path
+from googleapiclient.errors import HttpError
+
 
 from ..database import SessionLocal
 from .. import models
 from ..config import settings
-from ..utils import gen_slug, hash_password
+from ..utils import gen_slug, hash_password, safe_filename, unique_name
 from ..services import storage, thumbs, gdrive
 
 templates = Jinja2Templates(directory="templates")
@@ -158,17 +161,24 @@ async def upload_files(
 
         for uf in files:
             data = await uf.read()
+
+            # اسم آمن + فريد للتخزين على Drive
+            clean = safe_filename(uf.filename)
+            gname = unique_name(clean)
+
             file_id = gdrive.upload_bytes(
-                service, album_folder_id, uf.filename, uf.content_type, data
+                service, album_folder_id, gname, uf.content_type, data
             )
+
+            # اسم مصغّر آمن
             tbytes = thumbs.make_thumb_bytes(data, settings.THUMB_MAX_WIDTH)
-            tname = f"thumb_{uf.filename.rsplit('.',1)[0]}.jpg"
+            tname = f"thumb_{Path(gname).stem}.jpg"
             t_id = gdrive.upload_bytes(service, thumbs_folder_id, tname, "image/jpeg", tbytes)
 
             asset = models.Asset(
                 album_id=album.id,
-                filename=uf.filename,
-                original_name=uf.filename,
+                filename=gname,                     # ← نخزّن الاسم النظيف الفريد
+                original_name=uf.filename,          # ← نحتفظ بالأصلي للعرض/التنزيل
                 mime_type=uf.content_type or "application/octet-stream",
                 size=len(data),
                 gdrive_file_id=file_id,
@@ -183,19 +193,20 @@ async def upload_files(
     for uf in files:
         dst_folder = storage.album_dir(album.id)
         dst_folder.mkdir(parents=True, exist_ok=True)
-        dst_path = dst_folder / uf.filename
-        i = 1
-        while dst_path.exists():
-            stem, suffix = dst_path.stem, dst_path.suffix
-            dst_path = dst_folder / f"{stem} ({i}){suffix}"
-            i += 1
+
+        # اسم آمن + فريد على القرص
+        clean = safe_filename(uf.filename)
+        lname = unique_name(clean)
+        dst_path = dst_folder / lname
+
         with open(dst_path, "wb") as f:
             shutil.copyfileobj(uf.file, f)
+
         size = dst_path.stat().st_size
         asset = models.Asset(
             album_id=album.id,
-            filename=dst_path.name,
-            original_name=uf.filename,
+            filename=dst_path.name,               # ← الاسم النظيف الفريد على القرص
+            original_name=uf.filename,            # ← الاسم الأصلي للعرض/التنزيل
             mime_type=uf.content_type or "application/octet-stream",
             size=size
         )
@@ -203,6 +214,7 @@ async def upload_files(
 
     db.commit()
     return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
+
 
 
 @router.get("/thumb/{asset_id}")
