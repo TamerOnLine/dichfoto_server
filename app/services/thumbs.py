@@ -6,7 +6,19 @@ from PIL import Image, ImageOps
 import base64
 from ..config import settings
 
-SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+# ✅ فعّل كوديك AVIF إذا كانت الحزمة موجودة
+try:
+    import pillow_avif  # noqa: F401
+except Exception as e:
+    print("[avif] pillow-avif-plugin not available:", e)
+
+# ✅ فلاغات من .env
+ENABLE_WEBP = getattr(settings, "ENABLE_WEBP", True)
+ENABLE_AVIF = getattr(settings, "ENABLE_AVIF", False)
+
+# ✅ الامتدادات المقبولة (يشمل avif لو تحب ترفع أصل .avif)
+SUPPORTED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
+
 TARGET_WIDTHS = [480, 960, 1280, 1920]
 THUMB_QUALITY = 88
 VARIANT_QUALITY = 78
@@ -17,7 +29,7 @@ def is_image(path: Path) -> bool:
 def thumb_path(original: Path) -> Path:
     rel = Path(original).relative_to(Path(settings.STORAGE_DIR))
     out = Path(settings.THUMBS_DIR) / rel
-    # ✅ إن كان FORCE_JPEG مفعّل: غيّر الامتداد إلى .jpg
+    # إن FORCE_JPEG مفعّل: خزّن thumb كـ jpg
     return out.with_suffix(".jpg") if settings.FORCE_JPEG else out
 
 def _variant_out_path(original: Path, suffix: str, ext: str) -> Path:
@@ -48,9 +60,9 @@ def ensure_thumb(original: Path) -> Path | None:
             ratio = max_w / float(w)
             img = img.resize((max_w, int(h * ratio)), Image.Resampling.LANCZOS)
 
-        # ✅ إن FORCE_JPEG=True خزّن دائمًا JPEG، غير ذلك احترم الامتداد
         if settings.FORCE_JPEG:
-            img.save(tpath.with_suffix(".jpg"), "JPEG", quality=THUMB_QUALITY, optimize=True, progressive=True)
+            img.save(tpath.with_suffix(".jpg"), "JPEG",
+                     quality=THUMB_QUALITY, optimize=True, progressive=True)
             tpath = tpath.with_suffix(".jpg")
         else:
             ext = tpath.suffix.lower()
@@ -88,29 +100,32 @@ def ensure_variants(original: Path) -> Dict:
             target_h = int(h0 * (target_w / w0)) if w0 else h0
             im = im0.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
-            # JPG
+            # JPG (دائمًا)
             jpg_path = _variant_out_path(original, f"-{target_w}", "jpg")
             if not jpg_path.exists():
                 im.save(jpg_path, "JPEG", quality=VARIANT_QUALITY, optimize=True, progressive=True)
             rel = str(jpg_path.relative_to(Path(settings.THUMBS_DIR))).replace("\\", "/")
             out["jpg"][target_w] = f"/static/thumbs/{rel}"
 
-            # WEBP
-            webp_path = _variant_out_path(original, f"-{target_w}", "webp")
-            if not webp_path.exists():
-                im.save(webp_path, "WEBP", quality=VARIANT_QUALITY, method=6)
-            rel = str(webp_path.relative_to(Path(settings.THUMBS_DIR))).replace("\\", "/")
-            out["webp"][target_w] = f"/static/thumbs/{rel}"
+            # WEBP (حسب الفلاغ)
+            if ENABLE_WEBP:
+                webp_path = _variant_out_path(original, f"-{target_w}", "webp")
+                if not webp_path.exists():
+                    im.save(webp_path, "WEBP", quality=VARIANT_QUALITY, method=6)
+                rel = str(webp_path.relative_to(Path(settings.THUMBS_DIR))).replace("\\", "/")
+                out["webp"][target_w] = f"/static/thumbs/{rel}"
 
-            # AVIF (اختياري)
-            try:
-                avif_path = _variant_out_path(original, f"-{target_w}", "avif")
-                if not avif_path.exists():
-                    im.save(avif_path, "AVIF", quality=VARIANT_QUALITY)
-                rel = str(avif_path.relative_to(Path(settings.THUMBS_DIR))).replace("\\", "/")
-                out["avif"][target_w] = f"/static/thumbs/{rel}"
-            except Exception:
-                pass
+            # AVIF (حسب الفلاغ + توافر الكوديك)
+            if ENABLE_AVIF:
+                try:
+                    avif_path = _variant_out_path(original, f"-{target_w}", "avif")
+                    if not avif_path.exists():
+                        im.save(avif_path, "AVIF", quality=VARIANT_QUALITY)
+                    rel = str(avif_path.relative_to(Path(settings.THUMBS_DIR))).replace("\\", "/")
+                    out["avif"][target_w] = f"/static/thumbs/{rel}"
+                except Exception:
+                    pass
+
     return out
 
 def tiny_placeholder_base64(original: Path, size: int = 24) -> str:

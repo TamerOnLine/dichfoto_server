@@ -2,23 +2,27 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import FileResponse
-import os
 
 from .config import settings
 from .database import engine, Base
 from .routers import admin, public
 
+# سجل أنواع الـ MIME التي قد لا تكون مضافة افتراضيًا
+import mimetypes
+mimetypes.add_type("image/avif", ".avif")
+mimetypes.add_type("image/webp", ".webp")
 
-# ✅ كلاس جديد لعمل Cache-Control للصور
+
+# ✅ كلاس يضيف Cache-Control مناسب للصور وملفات CSS/JS
 class StaticFilesCached(StaticFiles):
     def file_response(self, *args, **kwargs):
         resp: FileResponse = super().file_response(*args, **kwargs)
         content_type = resp.headers.get("content-type", "")
         if content_type.startswith("image/"):
-            # Cache سنة كاملة + immutable
+            # كاش سنة كاملة + immutable للصور
             resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif content_type in ("text/css", "application/javascript"):
-            # كاش قصير للـ CSS/JS (مثلاً يوم واحد)
+            # كاش يوم واحد لـ CSS/JS
             resp.headers["Cache-Control"] = "public, max-age=86400"
         return resp
 
@@ -26,20 +30,20 @@ class StaticFilesCached(StaticFiles):
 # ===== FastAPI setup =====
 app = FastAPI(title=settings.SITE_TITLE)
 
-# Create the database tables if they do not exist
+# إنشاء الجداول (إن لم تكن موجودة)
 Base.metadata.create_all(bind=engine)
 
-# Add session middleware, required for admin login and share unlock
+# الجلسات (مطلوبة للدخول/القفل)
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
-# Mount local thumbs directory if USE_GDRIVE is False
-thumbs_mount = os.path.join(settings.THUMBS_DIR)
-app.mount("/static/thumbs", StaticFiles(directory=thumbs_mount), name="thumbs")  # type: ignore
+# ✅ ركّب مجلد الثمبنيلز مع نفس كلاس الكاش
+thumbs_dir = str(settings.THUMBS_DIR)  # تأكد أنها string
+app.mount("/static/thumbs", StaticFilesCached(directory=thumbs_dir), name="thumbs")
 
-# ✅ Mount static with improved caching
+# ✅ ركّب مجلد الأصول العامة مع كاش محسّن
 app.mount("/static", StaticFilesCached(directory="static"), name="static")
 
-# Include routers
+# الروترات
 app.include_router(admin.router)
 app.include_router(public.router)
 

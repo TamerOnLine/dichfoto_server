@@ -3,17 +3,19 @@
 {# إخفاء الهيدر لهذه الصفحة #}
 {% block header_class %}hide{% endblock %}
 
-{# 🔹 Preload للـ hero image بأكثر من حجم #}
+{# 🔹 Preload للـ hero بأحجام مناسبة لكل الشاشات #}
 {% if assets|length > 0 %}
   {% set hero = assets[0] %}
-  {% set hero_480  = hero.webp_480  or hero.jpg_480  or hero.thumb %}
-  {% set hero_960  = hero.webp_960  or hero.jpg_960  or hero.thumb %}
-  {% set hero_1280 = hero.webp_1280 or hero.jpg_1280 or hero.url %}
-  {% set hero_1920 = hero.webp_1920 or hero.jpg_1920 or hero.url %}
+  {# سلاسل احتياطية مرنة: لو ما في webp/avif يرجع jpg أو thumb أو url #}
+  {% set hero_480  = hero.webp_480  or hero.jpg_480  or hero.thumb or hero.url %}
+  {% set hero_960  = hero.webp_960  or hero.jpg_960  or hero.thumb or hero.url %}
+  {% set hero_1280 = hero.webp_1280 or hero.jpg_1280 or hero.url  or hero.thumb %}
+  {% set hero_1920 = hero.webp_1920 or hero.jpg_1920 or hero_1280 %}
+
   {% block head %}
     <link rel="preload" as="image"
           imagesrcset="{{ hero_480 }} 480w, {{ hero_960 }} 960w, {{ hero_1280 }} 1280w, {{ hero_1920 }} 1920w"
-          imagesizes="100vw">
+          imagesizes="(min-width: 1920px) 1920px, (min-width: 1280px) 1280px, (min-width: 768px) 960px, 100vw">
   {% endblock %}
 {% endif %}
 
@@ -28,41 +30,45 @@
         <button class="btn" type="submit">Unlock</button>
       </form>
     </section>
+
   {% else %}
 
     {% if assets|length > 0 %}
       {% set hero = assets[0] %}
-      {% set hero_480  = hero.webp_480  or hero.jpg_480  or hero.thumb %}
-      {% set hero_960  = hero.webp_960  or hero.jpg_960  or hero.thumb %}
-      {% set hero_1280 = hero.webp_1280 or hero.jpg_1280 or hero.url %}
-      {% set hero_1920 = hero.webp_1920 or hero.jpg_1920 or hero.url %}
+      {% set hero_480  = hero.webp_480  or hero.jpg_480  or hero.thumb or hero.url %}
+      {% set hero_960  = hero.webp_960  or hero.jpg_960  or hero.thumb or hero.url %}
+      {% set hero_1280 = hero.webp_1280 or hero.jpg_1280 or hero.url  or hero.thumb %}
+      {% set hero_1920 = hero.webp_1920 or hero.jpg_1920 or hero_1280 %}
 
-      <section id="hero" class="hero">
+      <section id="hero" class="hero" style="--lqip: url('{{ hero.lqip|default('') }}');">
         <picture>
-          {% if hero.avif_480 %}
-          <source type="image/avif"
-                  srcset="{{ hero.avif_480 }} 480w, {{ hero.avif_960 }} 960w, {{ hero.avif_1280 }} 1280w, {{ hero.avif_1920 }} 1920w"
-                  sizes="100vw">
+          {# AVIF (إن توفرت) #}
+          {% if hero.avif_480 or hero.avif_960 or hero.avif_1280 or hero.avif_1920 %}
+            <source type="image/avif"
+                    srcset="{% if hero.avif_480 %}{{ hero.avif_480 }} 480w,{% endif %}
+                            {% if hero.avif_960 %} {{ hero.avif_960 }} 960w,{% endif %}
+                            {% if hero.avif_1280 %} {{ hero.avif_1280 }} 1280w,{% endif %}
+                            {% if hero.avif_1920 %} {{ hero.avif_1920 }} 1920w{% endif %}"
+                    sizes="(min-width: 1920px) 1920px, (min-width: 1280px) 1280px, (min-width: 768px) 960px, 100vw">
           {% endif %}
 
-          {% if hero.webp_480 %}
-          <source type="image/webp"
-                  srcset="{{ hero.webp_480 }} 480w, {{ hero.webp_960 }} 960w, {{ hero.webp_1280 }} 1280w, {{ hero.webp_1920 }} 1920w"
-                  sizes="100vw">
+          {# WEBP (إن توفرت) #}
+          {% if hero.webp_480 or hero.webp_960 or hero.webp_1280 or hero.webp_1920 %}
+            <source type="image/webp"
+                    srcset="{% if hero.webp_480 %}{{ hero.webp_480 }} 480w,{% endif %}
+                            {% if hero.webp_960 %} {{ hero.webp_960 }} 960w,{% endif %}
+                            {% if hero.webp_1280 %} {{ hero.webp_1280 }} 1280w,{% endif %}
+                            {% if hero.webp_1920 %} {{ hero.webp_1920 }} 1920w{% endif %}"
+                    sizes="(min-width: 1920px) 1920px, (min-width: 1280px) 1280px, (min-width: 768px) 960px, 100vw">
           {% endif %}
 
+          {# JPEG fallback دائم #}
           <img class="hero-img"
                src="{{ hero_960 }}"
                srcset="{{ hero_480 }} 480w, {{ hero_960 }} 960w, {{ hero_1280 }} 1280w, {{ hero_1920 }} 1920w"
-               sizes="100vw"
-               width="{{ hero.width }}" height="{{ hero.height }}"
+               sizes="(min-width: 1920px) 1920px, (min-width: 1280px) 1280px, (min-width: 768px) 960px, 100vw"
                alt="{{ album.title }}"
-               fetchpriority="high" loading="eager" decoding="async"
-               style="background-image:url('{{ hero.lqip }}'); 
-                      background-size:cover; 
-                      background-position:center; 
-                      filter: blur(20px); 
-                      transform: scale(1.1);">
+               fetchpriority="high" loading="eager" decoding="async" />
         </picture>
 
         <div class="hero-actions">
@@ -73,14 +79,6 @@
                     stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </a>
-          <button class="icon-btn" type="button" title="Like">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-.99-1.06
-                       a5.5 5.5 0 1 0-7.78 7.78L12 21.35l8.77-8.96
-                       a5.5 5.5 0 0 0 .07-7.78Z"
-                    stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </button>
         </div>
 
         <div class="hero-overlay">
@@ -97,7 +95,7 @@
       {% if assets|length == 0 %}
         <p>No files available.</p>
       {% else %}
-        <!-- Justified gallery -->
+        {# شبكة الصور — السكربت يكيّف الارتفاع والمسافات حسب عرض الحاوية #}
         <div id="gallery" class="jg">
           {% for a in assets[1:] %}
             <a class="jg-item" href="{{ a.url }}" target="_blank" rel="noopener">
@@ -110,5 +108,8 @@
 
   {% endif %}
 
-  <script src="/static/justified.js" defer></script>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/justified.js?v=16" defer></script>
 {% endblock %}

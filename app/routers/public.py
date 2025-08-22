@@ -101,6 +101,29 @@ def open_share(request: Request, slug: str, db: Session = Depends(get_db)):
                 "url": f"/s/{slug}/file/{asset.id}",
                 "thumb": thumb_rel,
                 # ملاحظة: لو أردت تمرير مسارات الـ variants إلى القالب أضفها هنا.
+
+                # مقاسات و LQIP
+                "width": asset.width,
+                "height": asset.height,
+                "lqip": asset.lqip,
+
+                # JPG
+                "jpg_480": asset.jpg_480,
+                "jpg_960": asset.jpg_960,
+                "jpg_1280": asset.jpg_1280,
+                "jpg_1920": asset.jpg_1920,
+
+                # WEBP
+                "webp_480": asset.webp_480,
+                "webp_960": asset.webp_960,
+                "webp_1280": asset.webp_1280,
+                "webp_1920": asset.webp_1920,
+
+                # AVIF
+                "avif_480": asset.avif_480,
+                "avif_960": asset.avif_960,
+                "avif_1280": asset.avif_1280,
+                "avif_1920": asset.avif_1920,
             }
         )
 

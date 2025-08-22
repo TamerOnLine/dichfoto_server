@@ -84,6 +84,11 @@ class Asset(Base):
     avif_1280 = Column(String(255), nullable=True)
     avif_1920 = Column(String(255), nullable=True)
 
+    # Google Drive IDs
+    gdrive_file_id  = Column(String(255), nullable=True)
+    gdrive_thumb_id = Column(String(255), nullable=True)
+
+
     # Meta
     is_hidden = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

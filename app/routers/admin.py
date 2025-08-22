@@ -1,11 +1,12 @@
 from fastapi import (
-    APIRouter, Depends, Request, UploadFile, File, Form,
+    APIRouter, Depends, Header, Request, UploadFile, File, Form,
     HTTPException, Response
 )
 from fastapi.responses import (
     HTMLResponse, RedirectResponse, StreamingResponse, FileResponse
 )
 from fastapi.templating import Jinja2Templates
+from starlette.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
@@ -170,11 +171,13 @@ def view_album(request: Request, album_id: int, db: Session = Depends(get_db)):
 
 @router.post("/albums/{album_id}/upload")
 async def upload_files(
+    request: Request,
     album_id: int,
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
 ):
-    require_admin  # just to be explicit if you want to add it; auth already enforced on page
+    require_admin  # للتأكيد
+
     album = db.get(models.Album, album_id)
     if not album:
         raise HTTPException(status_code=404, detail="Album not found")
@@ -183,22 +186,71 @@ async def upload_files(
     album_dir = Path(settings.STORAGE_DIR) / f"album_{album_id}"
     album_dir.mkdir(parents=True, exist_ok=True)
 
+    # لو هنرفع على Drive حضّر الخدمة والمجلد
+    service = None
+    drive_album_folder = None
+    if getattr(settings, "USE_GDRIVE", False):
+        try:
+            service = gdrive._service()  # الخدمة المهيأة في gdrive.py
+            root = settings.GDRIVE_ROOT_FOLDER_ID
+            if not root:
+                print("[gdrive] WARNING: GDRIVE_ROOT_FOLDER_ID not set")
+            else:
+                drive_album_folder = gdrive.ensure_subfolder(service, root, f"album_{album_id}")
+        except Exception as e:
+            print("[gdrive] init failed:", e)
+            service = None
+
     for file in files:
+        # 1) احفظ أصليًا محليًا (دائمًا)
         original_path = album_dir / file.filename
         with open(original_path, "wb") as f:
             f.write(await file.read())
 
-        # thumbs + variants + lqip
-        thumbs.ensure_thumb(original_path)
+        # 2) أنشئ thumb/variants/LQIP محليًا
+        tpath = thumbs.ensure_thumb(original_path)
         variants = thumbs.ensure_variants(original_path)
         lqip = thumbs.tiny_placeholder_base64(original_path)
 
+        # 3) ارفع إلى Google Drive (إن مفعّل ونجح init)
+        gfile_id = None
+        gthumb_id = None
+        if service and drive_album_folder:
+            try:
+                # أصل
+                with open(original_path, "rb") as fp:
+                    data = fp.read()
+                gfile_id = gdrive.upload_bytes(
+                    service,
+                    drive_album_folder,
+                    file.filename,
+                    file.content_type or "application/octet-stream",
+                    data,
+                )
+
+                # مصغّرة (JPEG)
+                if tpath and tpath.exists():
+                    with open(tpath, "rb") as tp:
+                        thumb_bytes = tp.read()
+                    gthumb_id = gdrive.upload_bytes(
+                        service,
+                        drive_album_folder,
+                        f"thumb_{Path(file.filename).stem}.jpg",
+                        "image/jpeg",
+                        thumb_bytes,
+                    )
+            except Exception as e:
+                print("[gdrive] upload failed:", e)
+
+        # 4) سجّل الأصل في قاعدة البيانات
         asset = models.Asset(
             album_id=album.id,
             filename=str(original_path.relative_to(settings.STORAGE_DIR)),
             original_name=file.filename,
             mime_type=file.content_type,
             size=original_path.stat().st_size,
+            gdrive_file_id=gfile_id,
+            gdrive_thumb_id=gthumb_id,
         )
         asset.set_variants(variants)
         asset.lqip = lqip
@@ -206,7 +258,14 @@ async def upload_files(
         saved_assets.append(asset)
 
     db.commit()
+
+    # redirect للـ UI أو JSON للـ API
+    accept = (request.headers.get("accept") or "").lower()
+    if "text/html" in accept:
+        return RedirectResponse(url=f"/admin/albums/{album_id}", status_code=303)
+
     return {"ok": True, "uploaded": [a.id for a in saved_assets]}
+
 
 
 @router.get("/thumb/{asset_id}")
