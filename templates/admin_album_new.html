@@ -1,25 +1,32 @@
 {% extends 'layout.html' %}
+
 {% block content %}
+<section class="container">
+  <h2>Create New Album</h2>
 
-<h2>New Album</h2>
+  <form action="/admin/albums/new" method="post" class="form-box">
+    <div class="form-group">
+      <label for="title">Album Title</label>
+      <input id="title" type="text" name="title" required />
+    </div>
 
-<form action="/admin/albums/new" method="post">
-  <label for="title">Title</label>
-  <input id="title" type="text" name="title" required />
+    <div class="form-group">
+      <label for="photographer">Photographer <span class="optional">(optional)</span></label>
+      <input id="photographer" type="text" name="photographer" />
+    </div>
 
-  <label for="photographer">Photographer (optional)</label>
-  <input id="photographer" type="text" name="photographer" />
+    <div class="form-group">
+      <label for="event_date">Event Date <span class="hint">(ISO format)</span></label>
+      <input id="event_date"
+             type="text"
+             name="event_date"
+             placeholder="2025-07-19T00:00:00"
+             autocomplete="off" />
+    </div>
 
-  <label for="event_date">Event Date (ISO)</label>
-  <input
-    id="event_date"
-    type="text"
-    name="event_date"
-    placeholder="2025-07-19T00:00:00"
-    autocomplete="off"
-  />
-
-  <button type="submit" class="btn">Create</button>
-</form>
-
+    <div class="form-actions">
+      <button type="submit" class="btn">Create Album</button>
+    </div>
+  </form>
+</section>
 {% endblock %}

@@ -1,46 +1,68 @@
 {% extends 'layout.html' %}
+
 {% block content %}
+<section class="container">
+  <h2>Album: {{ album.title }}</h2>
 
-<h2>Album: {{ album.title }}</h2>
+  <!-- ========== Upload Section ========== -->
+  <section class="section">
+    <h3>Upload Files</h3>
+    <form action="/admin/albums/{{ album.id }}/upload"
+          method="post"
+          enctype="multipart/form-data"
+          class="form-box">
+      <div class="form-group">
+        <label for="files">Choose images</label>
+        <input id="files" type="file" name="files" multiple required accept="image/*" />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Upload</button>
+      </div>
+    </form>
+  </section>
 
-<section>
-  <h3>Upload Files</h3>
-  <form action="/admin/albums/{{ album.id }}/upload" method="post" enctype="multipart/form-data">
-    <label for="files">Choose images</label>
-    <input id="files" type="file" name="files" multiple required accept="image/*" />
-    <button type="submit" class="btn">Upload</button>
-  </form>
+  <!-- ========== Assets Section ========== -->
+  <section class="section">
+    <h3>Assets</h3>
+    {% if assets|length == 0 %}
+      <p>No files uploaded yet.</p>
+    {% else %}
+      <div class="asset-grid">
+        {% for a in assets %}
+          <figure class="card asset-card">
+            {% if a.thumb %}
+              <img src="{{ a.thumb }}" alt="{{ a.name }}" loading="lazy" decoding="async" />
+            {% endif %}
+            <figcaption class="caption" title="{{ a.name }}">{{ a.name }}</figcaption>
+          </figure>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- ========== Share Link Section ========== -->
+  <section class="section">
+    <h3>Create Share Link</h3>
+    <form action="/admin/albums/{{ album.id }}/share" method="post" class="form-box">
+      <div class="form-group">
+        <label for="expires_at">Expires At <span class="hint">(ISO format)</span></label>
+        <input id="expires_at" type="text" name="expires_at" placeholder="2025-09-03T23:59:59" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="optional">(optional)</span></label>
+        <input id="password" type="password" name="password" />
+      </div>
+
+      <label class="checkline">
+        <input type="checkbox" name="allow_zip" checked />
+        <span>Allow ZIP download</span>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="btn">Create Share</button>
+      </div>
+    </form>
+  </section>
 </section>
-
-<section>
-  <h3>Assets</h3>
-  {% if assets|length == 0 %}
-    <p>No files yet.</p>
-  {% else %}
-    <div class="grid masonry">
-      {% for a in assets %}
-        <div class="card">
-          {% if a.thumb %}
-            <img src="{{ a.thumb }}" alt="{{ a.name }}" loading="lazy" decoding="async" />
-          {% endif %}
-          <div class="caption">{{ a.name }}</div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-</section>
-
-<section>
-  <h3>Create Share Link</h3>
-<form action="/admin/albums/{{ album.id }}/share" method="post">
-  <label>Expires At (ISO)</label>
-  <input type="text" name="expires_at" placeholder="2025-09-03T23:59:59" />
-  <label>Password (optional)</label>
-  <input type="password" name="password" />
-  <label><input type="checkbox" name="allow_zip" checked> Allow ZIP download</label>
-  <button type="submit">Create Share</button>
-</form>
-
-</section>
-
 {% endblock %}

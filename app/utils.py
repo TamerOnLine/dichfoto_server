@@ -1,24 +1,29 @@
-import secrets
 import re
+import secrets
 import unicodedata
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
 from passlib.context import CryptContext
 
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def gen_slug(n: int = 8) -> str:
     """
     Generate a URL-safe short token.
 
     Args:
-        n (int): Length of the token. Defaults to 8.
+        n (int, optional): Length of the token. Defaults to 8.
 
     Returns:
         str: URL-safe token string.
     """
     return secrets.token_urlsafe(n)
+
 
 def verify_password(plain: str, hashed: str) -> bool:
     """
@@ -33,6 +38,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     """
     return pwd_context.verify(plain, hashed)
 
+
 def hash_password(plain: str) -> str:
     """
     Hash a plain password using bcrypt.
@@ -45,12 +51,13 @@ def hash_password(plain: str) -> str:
     """
     return pwd_context.hash(plain)
 
-def is_expired(expires_at) -> bool:
+
+def is_expired(expires_at: Optional[datetime]) -> bool:
     """
     Check if a given datetime is in the past.
 
     Args:
-        expires_at (datetime or None): The expiration datetime.
+        expires_at (Optional[datetime]): The expiration datetime.
 
     Returns:
         bool: True if expired, False otherwise.
@@ -58,6 +65,7 @@ def is_expired(expires_at) -> bool:
     if not expires_at:
         return False
     return datetime.utcnow() > expires_at
+
 
 def safe_filename(name: str) -> str:
     """
@@ -78,6 +86,7 @@ def safe_filename(name: str) -> str:
         norm = "file"
 
     return norm + (ext if ext else "")
+
 
 def unique_name(clean: str) -> str:
     """

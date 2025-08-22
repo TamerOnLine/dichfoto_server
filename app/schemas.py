@@ -1,31 +1,46 @@
 from __future__ import annotations
+
 from datetime import datetime, date
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
-# ==========
-# Base
-# ==========
+# ============================
+# Base Schema
+# ============================
 class BaseSchema(BaseModel):
-    # بديل orm_mode في Pydantic v2
+    """Base schema class for all models.
+
+    This class enables Pydantic's `from_attributes` mode, which is
+    equivalent to the deprecated `orm_mode` in Pydantic v1.
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==========
-# Helpers
-# ==========
+# ============================
+# Helper Functions
+# ============================
 def _parse_dt(value: Optional[str | datetime | date]) -> Optional[datetime]:
+    """Convert a string, date, or datetime into a datetime object.
+
+    Args:
+        value (Optional[str | datetime | date]): Input value to parse.
+
+    Returns:
+        Optional[datetime]: A valid datetime object if parsing succeeds,
+        otherwise None.
+    """
     if value is None:
         return None
     if isinstance(value, datetime):
         return value
     if isinstance(value, date):
-        # حوّل date إلى datetime عند منتصف الليل
+        # Convert `date` to `datetime` at midnight
         return datetime(value.year, value.month, value.day)
     if isinstance(value, str):
-        # يقبل "YYYY-MM-DD" أو "YYYY-MM-DDTHH:MM:SS"
+        # Accepts "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
         try:
             return datetime.fromisoformat(value)
         except ValueError:
@@ -33,22 +48,26 @@ def _parse_dt(value: Optional[str | datetime | date]) -> Optional[datetime]:
     return None
 
 
-# ==========
-# Inputs
-# ==========
+# ============================
+# Input Schemas
+# ============================
 class AlbumCreate(BaseSchema):
+    """Schema for creating a new album."""
+
     title: str = Field(..., min_length=1)
     photographer: Optional[str] = None
-    # نقبل تاريخ أو نص ISO ونحوّله لdatetime
     event_date: Optional[datetime] = None
 
     @field_validator("event_date", mode="before")
     @classmethod
-    def _coerce_event_date(cls, v):
-        return _parse_dt(v)
+    def _coerce_event_date(cls, value):
+        """Validate and coerce event_date into a datetime object."""
+        return _parse_dt(value)
 
 
 class ShareCreate(BaseSchema):
+    """Schema for creating a share link for an album."""
+
     album_id: int
     expires_at: Optional[datetime] = None
     password: Optional[str] = None
@@ -56,14 +75,17 @@ class ShareCreate(BaseSchema):
 
     @field_validator("expires_at", mode="before")
     @classmethod
-    def _coerce_expires_at(cls, v):
-        return _parse_dt(v)
+    def _coerce_expires_at(cls, value):
+        """Validate and coerce expires_at into a datetime object."""
+        return _parse_dt(value)
 
 
-# ==========
-# Outputs
-# ==========
+# ============================
+# Output Schemas
+# ============================
 class AssetOut(BaseSchema):
+    """Schema for returning asset details."""
+
     id: int
     album_id: int
     filename: str
@@ -74,39 +96,54 @@ class AssetOut(BaseSchema):
 
 
 class ShareOut(BaseSchema):
+    """Schema for returning share link details."""
+
     id: int
     album_id: int
     slug: str
     expires_at: Optional[datetime] = None
     allow_zip: bool = True
     created_at: datetime
-    # حقل مشتق لعدم كشف password_hash
     protected: bool = Field(default=False)
 
     @field_validator("protected", mode="before")
     @classmethod
-    def _derive_protected(cls, v, info):
-        # لو جاء dict من ORM، ممكن يحتوي password_hash
+    def _derive_protected(cls, value, info):
+        """Determine if a share is protected by a password.
+
+        Args:
+            value: Explicit value passed to `protected`.
+            info: Validation information, may include ORM object or dict.
+
+        Returns:
+            bool: True if the share is password-protected, otherwise False.
+        """
         data = info.data if hasattr(info, "data") else None
-        if isinstance(v, bool):
-            return v
-        # حاول قراءة password_hash من المصدر إن وجد
-        ph = None
+
+        if isinstance(value, bool):
+            return value
+
+        password_hash = None
         if isinstance(data, dict):
-            ph = data.get("password_hash") or data.get("password") or None
+            password_hash = (
+                data.get("password_hash") or data.get("password") or None
+            )
         else:
-            # من كائن ORM
             obj = info.data
-            ph = getattr(obj, "password_hash", None) if obj is not None else None
-        return bool(ph)
+            password_hash = (
+                getattr(obj, "password_hash", None) if obj is not None else None
+            )
+
+        return bool(password_hash)
 
 
 class AlbumOut(BaseSchema):
+    """Schema for returning album details with optional relations."""
+
     id: int
     title: str
     photographer: Optional[str] = None
     event_date: Optional[datetime] = None
     created_at: datetime
-    # اختيارياً نضمّن العلاقات
     assets: Optional[List[AssetOut]] = None
     shares: Optional[List[ShareOut]] = None

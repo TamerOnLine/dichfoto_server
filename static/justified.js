@@ -1,95 +1,65 @@
-// Justified layout without fixed columns
+// /static/justified.js
 (function () {
-  const GAP = 10;          // يجب أن يطابق --jg-gap
-  const TARGET = 260;      // ارتفاع الصف المستهدف (px) - عدّله لذوقك
-  const MAX_PER_ROW = 6;   // حدّ أقصى اختياري لعدد الصور في الصف
+  function justify(container, targetRowH = 220, gap = 16) {
+    const imgs = Array.from(container.querySelectorAll('img'));
+    if (!imgs.length) return;
 
-  function layout(container) {
-    // خذ العناصر دون فقدانها
-    const items = Array.from(container.querySelectorAll('.jg-item'));
-    if (!items.length) return;
+    const width = container.clientWidth;
+    let row = [], rowW = 0;
 
-    // جهّز حاوية جديدة للصفوف
-    const frag = document.createDocumentFragment();
-    let row = [];
-    let rowAspect = 0;
-    const cw = container.clientWidth;
+    function flushRow(isLast) {
+      const totalGap = gap * (row.length - 1);
+      const scale = isLast ? 1 : (width - totalGap) / rowW;
+      const rowH = Math.round(targetRowH * scale);
 
-    function flushRow(finalRow = false) {
-      if (!row.length) return;
-      // عرض المسافات داخل الصف
-      const gaps = GAP * Math.max(0, row.length - 1);
-      // احسب ارتفاع الصف بحيث يمتلئ عرض الحاوية بالضبط (مع الحفاظ على النِّسَب)
-      let h = (cw - gaps) / rowAspect;        // h = width / sum(ratios)
-      // لا نرفع الصف أكثر بكثير من الهدف (شكل أجمل)
-      if (!finalRow) h = Math.min(h, TARGET * 1.3);
-      // صفّ أخير: نقرّب للهدف بدل تمديد زائد
-      if (finalRow && h > TARGET) h = TARGET;
-
-      // أنشئ صفّ
       const rowDiv = document.createElement('div');
-      rowDiv.className = 'jg-row';
+      rowDiv.style.display = 'flex';
+      rowDiv.style.gap = gap + 'px';
+      rowDiv.style.marginBottom = gap + 'px';
 
-      row.forEach(({el, ratio}) => {
-        const w = h * ratio;                 // العرض الذي يحافظ على النسبة
-        el.style.width = w + 'px';           // الارتفاع يتكوّن تلقائيًا
-        rowDiv.appendChild(el);
+      row.forEach(({wrap, w, h}) => {
+        const ratio = w / h;
+        const itemW = Math.round(rowH * ratio);
+        wrap.style.flex = '0 0 ' + itemW + 'px';
+        wrap.style.height = rowH + 'px';
+        wrap.querySelector('img').style.height = '100%';
+        wrap.querySelector('img').style.objectFit = 'cover';
+        rowDiv.appendChild(wrap);
       });
-      frag.appendChild(rowDiv);
 
-      // صفّ جديد
-      row = [];
-      rowAspect = 0;
+      container.appendChild(rowDiv);
     }
 
-    items.forEach((el) => {
-      const img = el.querySelector('img');
-      // fallback لو لم تُحمّل الأبعاد بعد
-      const ratio = (img && img.naturalWidth && img.naturalHeight)
-        ? img.naturalWidth / img.naturalHeight
-        : 1.5;
-
-      row.push({ el, ratio });
-      rowAspect += ratio;
-
-      const predictedWidth = rowAspect * TARGET + GAP * Math.max(0, row.length - 1);
-      if (predictedWidth >= cw || row.length >= MAX_PER_ROW) {
-        flushRow(false);
-      }
+    // اجمع المقاسات أولاً
+    const items = imgs.map(img => {
+      const a = img.closest('.jg-item');
+      const w = img.naturalWidth || 800, h = img.naturalHeight || 600;
+      const wrap = document.createElement('div');
+      wrap.appendChild(a);
+      return {wrap, w, h};
     });
 
-    // صفّ أخير
-    flushRow(true);
-
-    // بدّل محتوى الحاوية بالصفوف
+    container.classList.add('is-justified');
     container.innerHTML = '';
-    container.appendChild(frag);
-  }
 
-  function debounce(fn, ms){ let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
-
-  function ready() {
-    const container = document.getElementById('gallery');
-    if (!container) return;
-
-    const relayout = () => layout(container);
-
-    // انتظر تحميل الصور لتكون ratios دقيقة
-    const imgs = container.querySelectorAll('img');
-    let pending = imgs.length;
-    if (!pending) { relayout(); return; }
-
-    imgs.forEach(img => {
-      if (img.complete && img.naturalWidth) {
-        if (--pending === 0) relayout();
-      } else {
-        img.addEventListener('load', () => { if (--pending === 0) relayout(); }, { once: true });
-        img.addEventListener('error', () => { if (--pending === 0) relayout(); }, { once: true });
+    for (const it of items) {
+      const ratio = it.w / it.h;
+      const nextW = rowW + targetRowH * ratio;
+      if (nextW + gap * row.length > container.clientWidth && row.length) {
+        flushRow(false);
+        row = []; rowW = 0;
       }
-    });
-
-    window.addEventListener('resize', debounce(relayout, 150));
+      row.push(it);
+      rowW += targetRowH * ratio;
+    }
+    if (row.length) flushRow(true);
   }
 
-  document.addEventListener('DOMContentLoaded', ready);
+  function init() {
+    const c = document.getElementById('gallery');
+    if (!c) return;
+    justify(c);
+    window.addEventListener('resize', () => { c.innerHTML=''; c.classList.remove('is-justified'); justify(c); });
+  }
+  window.addEventListener('load', init);
 })();

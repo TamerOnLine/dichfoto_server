@@ -1,0 +1,289 @@
+/* ================================
+   تنسيقات خاصة بلوحة التحكم (admin)
+   ================================ */
+
+/* قسم العناوين */
+h2 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  margin-bottom: 1.2rem;
+  color: var(--color-brand);
+}
+
+/* ========================================================================== 
+   الأساسيات 
+   ========================================================================== */
+:root {
+  /* ألوان */
+  --color-bg: #ffffff;
+  --color-fg: #0f172a;
+  --color-muted: #64748b;
+  --color-brand: #2563eb;
+  --color-brand-dark: #1d4ed8;
+  --color-border: #e2e8f0;
+  --color-surface: #f8fafc;
+
+  /* خطوط */
+  --font-main: 'Inter', system-ui, sans-serif;
+  --font-heading: 'Poppins', sans-serif;
+
+  /* قياسات */
+  --radius: 12px;
+  --gap: 16px;
+
+  /* ظلال */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================================================== 
+   هيكل عام 
+   ========================================================================== */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--gap);
+}
+
+header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 0;
+  box-shadow: var(--shadow-sm);
+}
+
+header h1 {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  color: var(--color-brand);
+}
+
+footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ========================================================================== 
+   أزرار 
+   ========================================================================== */
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  background: var(--color-brand);
+  color: #fff;
+  border-radius: var(--radius);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+.btn:hover {
+  background: var(--color-brand-dark);
+}
+
+/* ========================================================================== 
+   فورمات 
+   ========================================================================== */
+form {
+  display: grid;
+  gap: var(--gap);
+  max-width: 400px;
+}
+
+input, select, textarea {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+label {
+  font-weight: 500;
+}
+
+/* ========================================================================== 
+   جاليري الصور 
+   ========================================================================== */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--gap);
+  margin-top: 2rem;
+}
+
+.gallery img {
+  border-radius: 0;   /* زوايا قائمة */
+  box-shadow: var(--shadow-md);
+}
+
+.gallery img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+}
+
+/* ========================================================================== 
+   كروت 
+   ========================================================================== */
+.card img {
+  border-radius: 0;   /* زوايا قائمة */
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.card h3 {
+  font-family: var(--font-heading);
+  margin-bottom: 0.5rem;
+}
+
+/* ========================================================================== 
+   ريسبونسيف 
+   ========================================================================== */
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .gallery {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
+/* ========================================================================== 
+   صناديق الفورم 
+   ========================================================================== */
+.form-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  max-width: 500px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-weight: 500;
+}
+
+.form-group .optional {
+  font-weight: normal;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.form-group .hint {
+  font-weight: normal;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+}
+
+/* ========================================================================== 
+   أقسام و عناوين 
+   ========================================================================== */
+.section { margin: 1.5rem 0 2rem; }
+
+h3 {
+  margin: 0 0 .8rem;
+  font-size: 1.05rem;
+  color: var(--color-fg);
+}
+
+/* ========================================================================== 
+   شبكة الأصول 
+   ========================================================================== */
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--gap);
+}
+
+.asset-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.asset-card img {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 0;   /* زوايا قائمة */
+}
+
+.caption {
+  border-radius: 0;   /* يتطابق مع الصورة */
+}
+
+/* ========================================================================== 
+   Checkline 
+   ========================================================================== */
+.checkline {
+  display: inline-flex;
+  gap: .5rem;
+  align-items: center;
+  margin-top: .6rem;
+  user-select: none;
+}
+.checkline input { transform: translateY(1px); }
+
+/* ========================================================================== 
+   صفحة تسجيل الدخول 
+   ========================================================================== */
+.auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 60px);
+}
+
+.auth-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--shadow-md);
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.auth-box h2 {
+  margin-bottom: 1.5rem;
+  font-family: var(--font-heading);
+  color: var(--color-brand);
+}

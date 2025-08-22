@@ -1,22 +1,27 @@
 {% extends 'layout.html' %}
 
-{# إخفاء الهيدر لهذه الصفحة #}
+{# Hide the header for this page #}
 {% block header_class %}hide{% endblock %}
 
 {% block content %}
-<section class="auth">
-  <h2>Admin Login</h2>
+<section class="auth container">
+  <div class="auth-box">
+    <h2>Admin Login</h2>
 
-  <form action="/admin/login" method="post">
-    <label for="password">Password</label>
-    <input
-      id="password"
-      type="password"
-      name="password"
-      required
-      autocomplete="current-password"
-    />
-    <button type="submit" class="btn">Login</button>
-  </form>
+    <form action="/admin/login" method="post" class="form-box">
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password"
+               type="password"
+               name="password"
+               required
+               autocomplete="current-password" />
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn">Login</button>
+      </div>
+    </form>
+  </div>
 </section>
 {% endblock %}

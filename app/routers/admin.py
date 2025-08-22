@@ -1,8 +1,10 @@
 from fastapi import (
-    APIRouter, Depends, Request,
-    UploadFile, File, Form, HTTPException
+    APIRouter, Depends, Request, UploadFile, File, Form,
+    HTTPException, Response
 )
-from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse, RedirectResponse, StreamingResponse, FileResponse
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -12,7 +14,6 @@ import shutil
 from pathlib import Path
 from googleapiclient.errors import HttpError
 
-
 from ..database import SessionLocal
 from .. import models
 from ..config import settings
@@ -21,8 +22,56 @@ from ..services import storage, thumbs, gdrive
 
 templates = Jinja2Templates(directory="templates")
 
-# راوتر واحد فقط (لا تكرر التعريف)
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+# أعلى الملف
+import json
+from pathlib import Path
+from pydantic import BaseModel
+
+THEME_PATH = Path("static/theme.json")
+
+class ThemePayload(BaseModel):
+    vars: dict[str, str] = {}
+    disableDark: bool = False
+
+# صفحة التحكم
+@router.get("/theme", response_class=HTMLResponse)
+def theme_page(request: Request):
+    require_admin(request)
+    return templates.TemplateResponse("admin/theme.html", {"request": request})
+
+# حفظ الإعدادات
+@router.post("/theme/save")
+def theme_save(payload: ThemePayload, request: Request):
+    require_admin(request)
+    THEME_PATH.write_text(json.dumps(payload.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True}
+
+# استعادة الافتراضي (حذف الملف)
+@router.post("/theme/reset")
+def theme_reset(request: Request):
+    require_admin(request)
+    if THEME_PATH.exists():
+        THEME_PATH.unlink()
+    return {"ok": True}
+
+# في نفس الملف (admin.py)
+
+@router.get("/theme/config")
+def theme_config():
+    """
+    يعيد theme.json إن وُجد، وإلا يعيد إعدادات افتراضية.
+    لا يتطلب صلاحية admin لأن كل الصفحات تحتاج قراءته.
+    """
+    if THEME_PATH.exists():
+        data = json.loads(THEME_PATH.read_text(encoding="utf-8"))
+    else:
+        data = {
+            "vars": {},          # استخدم قيم :root الافتراضية من style.css
+            "disableDark": False # فقط مثال لفلاغ إضافي إن احتجته
+        }
+    return data
 
 
 # ---------- Helpers ----------
@@ -44,8 +93,6 @@ def require_admin(request: Request):
 
 
 # ---------- Routes ----------
-
-# ✅ alias: يدعم /admin و /admin/
 @router.get("", include_in_schema=False)
 def admin_no_slash():
     """Redirect /admin → /admin/ (301 Moved Permanently)."""
@@ -54,10 +101,6 @@ def admin_no_slash():
 
 @router.get("/", response_class=HTMLResponse)
 def admin_home(request: Request):
-    """
-    لو المستخدم مش مسجل → اعرض صفحة الدخول.
-    لو مسجل → حوّله مباشرة لصفحة إنشاء الألبوم (أو اعرض dashboard لاحقاً).
-    """
     if not is_admin(request):
         return templates.TemplateResponse(
             "admin_login.html",
@@ -104,26 +147,10 @@ def view_album(request: Request, album_id: int, db: Session = Depends(get_db)):
     if not album:
         raise HTTPException(404)
 
-    assets = []
-    for a in album.assets:
-        if settings.USE_GDRIVE and a.gdrive_thumb_id:
-            # thumbnail عبر Proxy من Drive
-            t_rel = f"/admin/thumb/{a.id}"
-        else:
-            # Local fallback
-            album_path = storage.album_dir(album.id)
-            full_path = album_path / a.filename
-            tpath = thumbs.ensure_thumb(full_path)
-            if tpath:
-                try:
-                    t_rel = "/static/thumbs/" + str(
-                        tpath.relative_to(settings.THUMBS_DIR)
-                    ).replace("\\", "/")
-                except Exception:
-                    t_rel = None
-            else:
-                t_rel = None
-        assets.append({"id": a.id, "name": a.original_name, "thumb": t_rel})
+    assets = [
+        {"id": a.id, "name": a.original_name, "thumb": f"/admin/thumb/{a.id}"}
+        for a in album.assets
+    ]
 
     return templates.TemplateResponse(
         "admin_album_view.html",
@@ -138,63 +165,66 @@ def view_album(request: Request, album_id: int, db: Session = Depends(get_db)):
 
 @router.post("/albums/{album_id}/upload")
 async def upload_files(
-    request: Request,
     album_id: int,
     files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(SessionLocal)
 ):
-    require_admin(request)
-    album = db.get(models.Album, album_id)
+    """
+    رفع ملفات إلى ألبوم معيّن + توليد Thumbnails/Variants + حفظ بياناتها في DB.
+    """
+    # تحقق من وجود الألبوم
+    album = db.query(models.Album).get(album_id)
     if not album:
-        raise HTTPException(404)
+        raise HTTPException(status_code=404, detail="Album not found")
 
-    # =============== Google Drive ===============
-    if settings.USE_GDRIVE:
-        if not settings.GDRIVE_ROOT_FOLDER_ID:
-            raise HTTPException(500, "Google Drive storage not configured")
+    saved_assets = []
+    album_dir = Path(settings.STORAGE_DIR) / f"album_{album_id}"
+    album_dir.mkdir(parents=True, exist_ok=True)
 
-        service = gdrive._service()
-        album_folder_id = gdrive.ensure_subfolder(
-            service, settings.GDRIVE_ROOT_FOLDER_ID, f"album_{album.id:06d}"
+    for file in files:
+        # 1️⃣ احفظ الملف الأصلي
+        original_path = album_dir / file.filename
+        with open(original_path, "wb") as f:
+            f.write(await file.read())
+
+        # 2️⃣ أنشئ thumb + variants + LQIP
+        thumbs.ensure_thumb(original_path)
+        variants = thumbs.ensure_variants(original_path)
+        lqip = thumbs.tiny_placeholder_base64(original_path)
+
+        # 3️⃣ خزّن البيانات في DB
+        asset = models.Asset(
+            album_id=album.id,
+            filename=str(original_path.relative_to(settings.STORAGE_DIR)),
+            original_name=file.filename,
+            mime_type=file.content_type,
+            size=original_path.stat().st_size,
+            width=variants["width"],
+            height=variants["height"],
+            lqip=lqip,
+            # 👉 الأمثلة: لو ضفت أعمدة في جدول Asset
+            jpg_480=variants["jpg"].get(480),
+            jpg_960=variants["jpg"].get(960),
+            jpg_1280=variants["jpg"].get(1280),
+            jpg_1920=variants["jpg"].get(1920),
+            webp_480=variants["webp"].get(480),
+            webp_960=variants["webp"].get(960),
+            webp_1280=variants["webp"].get(1280),
+            webp_1920=variants["webp"].get(1920),
+            avif_480=variants["avif"].get(480),
+            avif_960=variants["avif"].get(960),
+            avif_1280=variants["avif"].get(1280),
+            avif_1920=variants["avif"].get(1920),
         )
-        thumbs_folder_id = gdrive.ensure_subfolder(service, album_folder_id, "_thumbs")
+        db.add(asset)
+        saved_assets.append(asset)
 
-        for uf in files:
-            data = await uf.read()
-
-            # اسم آمن + فريد للتخزين على Drive
-            clean = safe_filename(uf.filename)
-            gname = unique_name(clean)
-
-            file_id = gdrive.upload_bytes(
-                service, album_folder_id, gname, uf.content_type, data
-            )
-
-            # اسم مصغّر آمن
-            tbytes = thumbs.make_thumb_bytes(data, settings.THUMB_MAX_WIDTH)
-            tname = f"thumb_{Path(gname).stem}.jpg"
-            t_id = gdrive.upload_bytes(service, thumbs_folder_id, tname, "image/jpeg", tbytes)
-
-            asset = models.Asset(
-                album_id=album.id,
-                filename=gname,                     # ← نخزّن الاسم النظيف الفريد
-                original_name=uf.filename,          # ← نحتفظ بالأصلي للعرض/التنزيل
-                mime_type=uf.content_type or "application/octet-stream",
-                size=len(data),
-                gdrive_file_id=file_id,
-                gdrive_thumb_id=t_id,
-            )
-            db.add(asset)
-
-        db.commit()
-        return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
-
-    # =============== Local storage ===============
+    db.commit()
+    return {"ok": True, "uploaded": [a.id for a in saved_assets]}
     for uf in files:
         dst_folder = storage.album_dir(album.id)
         dst_folder.mkdir(parents=True, exist_ok=True)
 
-        # اسم آمن + فريد على القرص
         clean = safe_filename(uf.filename)
         lname = unique_name(clean)
         dst_path = dst_folder / lname
@@ -205,8 +235,8 @@ async def upload_files(
         size = dst_path.stat().st_size
         asset = models.Asset(
             album_id=album.id,
-            filename=dst_path.name,               # ← الاسم النظيف الفريد على القرص
-            original_name=uf.filename,            # ← الاسم الأصلي للعرض/التنزيل
+            filename=dst_path.name,
+            original_name=uf.filename,
             mime_type=uf.content_type or "application/octet-stream",
             size=size
         )
@@ -216,22 +246,36 @@ async def upload_files(
     return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
 
 
-
 @router.get("/thumb/{asset_id}")
 def admin_thumb(asset_id: int, db: Session = Depends(get_db)):
     asset = db.get(models.Asset, asset_id)
     if not asset:
         raise HTTPException(404)
+
     if settings.USE_GDRIVE and asset.gdrive_thumb_id:
-        service = gdrive._service()
-        gen = gdrive.download_to_generator(service, asset.gdrive_thumb_id)
-        return StreamingResponse(gen, media_type="image/jpeg")
-    raise HTTPException(404)
+        try:
+            gen = gdrive.stream_via_requests(asset.gdrive_thumb_id, chunk_size=256 * 1024)
+            return StreamingResponse(gen, media_type="image/jpeg")
+        except Exception:
+            pass
+
+    apath = storage.album_dir(asset.album_id) / asset.filename
+    tpath = thumbs.ensure_thumb(apath)
+    if tpath and tpath.exists():
+        return FileResponse(tpath, media_type="image/jpeg")
+
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="260">'
+        '<rect width="100%" height="100%" fill="#e2e8f0"/>'
+        '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" '
+        'font-family="Segoe UI, Roboto, sans-serif" font-size="16" fill="#64748b">No preview</text>'
+        '</svg>'
+    )
+    return Response(content=svg, media_type="image/svg+xml")
 
 
 @router.get("/login", response_class=HTMLResponse)
 def admin_login_form(request: Request):
-    # لو أصلاً مسجّل، ودِّيه مباشرة
     if is_admin(request):
         return RedirectResponse(url="/admin/albums/new", status_code=302)
     return templates.TemplateResponse(
@@ -245,10 +289,9 @@ def admin_login(request: Request, password: str = Form(...)):
     if password == settings.ADMIN_PASSWORD:
         request.session["admin"] = True
         return RedirectResponse(url="/admin/albums/new", status_code=302)
-    # فشل: ارجع لنفس صفحة الدخول
     return RedirectResponse(url="/admin", status_code=302)
 
-# ✅ يدعم POST بشكل صريح، ويعالج GET بتحويل واضح
+
 @router.api_route("/albums/{album_id}/share", methods=["POST"])
 def create_share(
     request: Request,
@@ -286,8 +329,6 @@ def create_share(
     return RedirectResponse(url=f"/s/{sl.slug}", status_code=302)
 
 
-# (اختياري) لو أحد فتح الرابط مباشرة GET /admin/albums/{id}/share
 @router.get("/albums/{album_id}/share", include_in_schema=False)
 def create_share_get(album_id: int):
-    # وضوح أفضل من 404 الغامض
     return RedirectResponse(url=f"/admin/albums/{album_id}", status_code=302)

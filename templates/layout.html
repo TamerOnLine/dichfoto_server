@@ -4,24 +4,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ site_title }}</title>
+
+  <!-- 🔗 Preconnect لتسريع تحميل الصور أو الأصول من CDN -->
+  <link rel="preconnect" href="https://cdn.yourdomain.com" crossorigin>
+
+  <!-- ✅ CSS الأساسي -->
   <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/admin.css" />
+  <link rel="stylesheet" href="/static/public.css" />
+  <link rel="stylesheet" href="/static/share.min.css" />
 
-  
-
+  {# ✅ بلوك مخصص لأي head إضافي (preload, meta, css إضافي) #}
+  {% block head %}{% endblock %}
 </head>
 <body>
-  <header>
+  <a href="#main" class="sr-only">Skip to content</a>
+
+  <header class="{% block header_class %}{% endblock %}">
     <div class="container">
       <h1>{{ site_title }}</h1>
     </div>
   </header>
-  <main class="container">
+
+  <main id="main">
     {% block content %}{% endblock %}
   </main>
+
   <footer>
     <div class="container">
       <small>Built with FastAPI • {{ site_title }}</small>
     </div>
   </footer>
+
+  {# ✅ بلوك مخصص لأي سكربتات إضافية #}
+  {% block scripts %}{% endblock %}
 </body>
 </html>
