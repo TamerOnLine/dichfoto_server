@@ -28,8 +28,6 @@ class Settings(BaseSettings):
 
     # ===== Core =====
     DATABASE_URL: str = f"sqlite:///{(BASE_DIR / 'app.db').as_posix()}"
-    SECRET_KEY: str = "change-me"      # Should be set in .env for production
-    ADMIN_PASSWORD: str = "admin123"   # Should be set in .env for production
     SITE_TITLE: str = "Dich Foto"
 
     # ===== Local storage (always available) =====
@@ -37,11 +35,15 @@ class Settings(BaseSettings):
     THUMBS_DIR: Path = STORAGE_DIR / "_thumbs"
     THUMB_MAX_WIDTH: int = 800
 
+    # ===== Image / thumbnail options =====
+    FORCE_JPEG: bool = True    # store thumbnails as JPEG to avoid format issues
+    ENABLE_WEBP: bool = True   # control WEBP variants (if your thumbs service uses it)
+    ENABLE_AVIF: bool = False  # AVIF often needs extra Pillow support; keep off by default
+
     # ===== Google Drive =====
     USE_GDRIVE: bool = False
     GDRIVE_ROOT_FOLDER_ID: Optional[str] = None
-    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
-    # This can be a relative path like "secrets/xxx.json"
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None  # may be relative like "secrets/xxx.json"
 
     # Pydantic v2 configuration
     model_config = SettingsConfigDict(

@@ -7,48 +7,50 @@ from fastapi.responses import (
 )
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 from slugify import slugify
-import shutil
 from pathlib import Path
-from googleapiclient.errors import HttpError
+import json
+from pydantic import BaseModel
 
 from ..database import SessionLocal
 from .. import models
 from ..config import settings
-from ..utils import gen_slug, hash_password, safe_filename, unique_name
-from ..services import storage, thumbs, gdrive
+from ..utils import gen_slug, hash_password
+from ..services import thumbs, gdrive
 
 templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# أعلى الملف
-import json
-from pathlib import Path
-from pydantic import BaseModel
-
+# ===========================
+# Theme config (simple JSON)
+# ===========================
 THEME_PATH = Path("static/theme.json")
+
 
 class ThemePayload(BaseModel):
     vars: dict[str, str] = {}
     disableDark: bool = False
 
-# صفحة التحكم
+
 @router.get("/theme", response_class=HTMLResponse)
 def theme_page(request: Request):
     require_admin(request)
     return templates.TemplateResponse("admin/theme.html", {"request": request})
 
-# حفظ الإعدادات
+
 @router.post("/theme/save")
 def theme_save(payload: ThemePayload, request: Request):
     require_admin(request)
-    THEME_PATH.write_text(json.dumps(payload.model_dump(), ensure_ascii=False, indent=2), encoding="utf-8")
+    THEME_PATH.write_text(
+        json.dumps(payload.model_dump(), ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     return {"ok": True}
 
-# استعادة الافتراضي (حذف الملف)
+
 @router.post("/theme/reset")
 def theme_reset(request: Request):
     require_admin(request)
@@ -56,7 +58,6 @@ def theme_reset(request: Request):
         THEME_PATH.unlink()
     return {"ok": True}
 
-# في نفس الملف (admin.py)
 
 @router.get("/theme/config")
 def theme_config():
@@ -69,12 +70,14 @@ def theme_config():
     else:
         data = {
             "vars": {},          # استخدم قيم :root الافتراضية من style.css
-            "disableDark": False # فقط مثال لفلاغ إضافي إن احتجته
+            "disableDark": False # مثال لفلاغ إضافي
         }
     return data
 
 
-# ---------- Helpers ----------
+# ================
+# Helpers
+# ================
 def get_db():
     db = SessionLocal()
     try:
@@ -92,7 +95,9 @@ def require_admin(request: Request):
         raise HTTPException(status_code=403, detail="Not authorized")
 
 
-# ---------- Routes ----------
+# ================
+# Routes
+# ================
 @router.get("", include_in_schema=False)
 def admin_no_slash():
     """Redirect /admin → /admin/ (301 Moved Permanently)."""
@@ -104,7 +109,7 @@ def admin_home(request: Request):
     if not is_admin(request):
         return templates.TemplateResponse(
             "admin_login.html",
-            {"request": request, "site_title": settings.SITE_TITLE}
+            {"request": request, "site_title": settings.SITE_TITLE},
         )
     return RedirectResponse(url="/admin/albums/new", status_code=302)
 
@@ -114,7 +119,7 @@ def album_new_form(request: Request):
     require_admin(request)
     return templates.TemplateResponse(
         "admin_album_new.html",
-        {"request": request, "site_title": settings.SITE_TITLE}
+        {"request": request, "site_title": settings.SITE_TITLE},
     )
 
 
@@ -124,7 +129,7 @@ def create_album(
     title: str = Form(...),
     photographer: Optional[str] = Form(None),
     event_date: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     require_admin(request)
     ed = None
@@ -158,22 +163,19 @@ def view_album(request: Request, album_id: int, db: Session = Depends(get_db)):
             "request": request,
             "site_title": settings.SITE_TITLE,
             "album": album,
-            "assets": assets
-        }
+            "assets": assets,
+        },
     )
 
 
 @router.post("/albums/{album_id}/upload")
 async def upload_files(
     album_id: int,
-    files: List[UploadFile] = File(...),
-    db: Session = Depends(SessionLocal)
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
 ):
-    """
-    رفع ملفات إلى ألبوم معيّن + توليد Thumbnails/Variants + حفظ بياناتها في DB.
-    """
-    # تحقق من وجود الألبوم
-    album = db.query(models.Album).get(album_id)
+    require_admin  # just to be explicit if you want to add it; auth already enforced on page
+    album = db.get(models.Album, album_id)
     if not album:
         raise HTTPException(status_code=404, detail="Album not found")
 
@@ -182,68 +184,29 @@ async def upload_files(
     album_dir.mkdir(parents=True, exist_ok=True)
 
     for file in files:
-        # 1️⃣ احفظ الملف الأصلي
         original_path = album_dir / file.filename
         with open(original_path, "wb") as f:
             f.write(await file.read())
 
-        # 2️⃣ أنشئ thumb + variants + LQIP
+        # thumbs + variants + lqip
         thumbs.ensure_thumb(original_path)
         variants = thumbs.ensure_variants(original_path)
         lqip = thumbs.tiny_placeholder_base64(original_path)
 
-        # 3️⃣ خزّن البيانات في DB
         asset = models.Asset(
             album_id=album.id,
             filename=str(original_path.relative_to(settings.STORAGE_DIR)),
             original_name=file.filename,
             mime_type=file.content_type,
             size=original_path.stat().st_size,
-            width=variants["width"],
-            height=variants["height"],
-            lqip=lqip,
-            # 👉 الأمثلة: لو ضفت أعمدة في جدول Asset
-            jpg_480=variants["jpg"].get(480),
-            jpg_960=variants["jpg"].get(960),
-            jpg_1280=variants["jpg"].get(1280),
-            jpg_1920=variants["jpg"].get(1920),
-            webp_480=variants["webp"].get(480),
-            webp_960=variants["webp"].get(960),
-            webp_1280=variants["webp"].get(1280),
-            webp_1920=variants["webp"].get(1920),
-            avif_480=variants["avif"].get(480),
-            avif_960=variants["avif"].get(960),
-            avif_1280=variants["avif"].get(1280),
-            avif_1920=variants["avif"].get(1920),
         )
+        asset.set_variants(variants)
+        asset.lqip = lqip
         db.add(asset)
         saved_assets.append(asset)
 
     db.commit()
     return {"ok": True, "uploaded": [a.id for a in saved_assets]}
-    for uf in files:
-        dst_folder = storage.album_dir(album.id)
-        dst_folder.mkdir(parents=True, exist_ok=True)
-
-        clean = safe_filename(uf.filename)
-        lname = unique_name(clean)
-        dst_path = dst_folder / lname
-
-        with open(dst_path, "wb") as f:
-            shutil.copyfileobj(uf.file, f)
-
-        size = dst_path.stat().st_size
-        asset = models.Asset(
-            album_id=album.id,
-            filename=dst_path.name,
-            original_name=uf.filename,
-            mime_type=uf.content_type or "application/octet-stream",
-            size=size
-        )
-        db.add(asset)
-
-    db.commit()
-    return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
 
 
 @router.get("/thumb/{asset_id}")
@@ -252,24 +215,27 @@ def admin_thumb(asset_id: int, db: Session = Depends(get_db)):
     if not asset:
         raise HTTPException(404)
 
-    if settings.USE_GDRIVE and asset.gdrive_thumb_id:
+    # Google Drive thumbnail (لو مفعّل وبها أعمدة في الموديل)
+    if getattr(settings, "USE_GDRIVE", False) and getattr(asset, "gdrive_thumb_id", None):
         try:
             gen = gdrive.stream_via_requests(asset.gdrive_thumb_id, chunk_size=256 * 1024)
             return StreamingResponse(gen, media_type="image/jpeg")
         except Exception:
             pass
 
-    apath = storage.album_dir(asset.album_id) / asset.filename
+    # Local file → ensure/load thumb
+    apath = Path(settings.STORAGE_DIR) / asset.filename
     tpath = thumbs.ensure_thumb(apath)
     if tpath and tpath.exists():
         return FileResponse(tpath, media_type="image/jpeg")
 
+    # Fallback SVG
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="260">'
         '<rect width="100%" height="100%" fill="#e2e8f0"/>'
         '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" '
         'font-family="Segoe UI, Roboto, sans-serif" font-size="16" fill="#64748b">No preview</text>'
-        '</svg>'
+        "</svg>"
     )
     return Response(content=svg, media_type="image/svg+xml")
 
@@ -280,7 +246,7 @@ def admin_login_form(request: Request):
         return RedirectResponse(url="/admin/albums/new", status_code=302)
     return templates.TemplateResponse(
         "admin_login.html",
-        {"request": request, "site_title": settings.SITE_TITLE}
+        {"request": request, "site_title": settings.SITE_TITLE},
     )
 
 
@@ -299,7 +265,7 @@ def create_share(
     expires_at: Optional[str] = Form(None),
     password: Optional[str] = Form(None),
     allow_zip: Optional[bool] = Form(True),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     require_admin(request)
     album = db.get(models.Album, album_id)
