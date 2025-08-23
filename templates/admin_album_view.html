@@ -1,16 +1,17 @@
 {% extends 'layout.html' %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="/static/admin.css?v=3">
+{% endblock %}
+
 {% block content %}
 <section class="container">
   <h2>Album: {{ album.title }}</h2>
 
-  <!-- ========== Upload Section ========== -->
+  <!-- Upload -->
   <section class="section">
     <h3>Upload Files</h3>
-    <form action="/admin/albums/{{ album.id }}/upload"
-          method="post"
-          enctype="multipart/form-data"
-          class="form-box">
+    <form action="/admin/albums/{{ album.id }}/upload" method="post" enctype="multipart/form-data" class="form-box">
       <div class="form-group">
         <label for="files">Choose images</label>
         <input id="files" type="file" name="files" multiple required accept="image/*" />
@@ -21,7 +22,7 @@
     </form>
   </section>
 
-  <!-- ========== Assets Section ========== -->
+  <!-- Assets -->
   <section class="section">
     <h3>Assets</h3>
     {% if assets|length == 0 %}
@@ -30,17 +31,39 @@
       <div class="asset-grid">
         {% for a in assets %}
           <figure class="card asset-card">
-            {% if a.thumb %}
-              <img src="{{ a.thumb }}" alt="{{ a.name }}" loading="lazy" decoding="async" />
-            {% endif %}
-            <figcaption class="caption" title="{{ a.name }}">{{ a.name }}</figcaption>
+            <div class="thumb-wrap">
+              <img src="/admin/thumb/{{ a.id }}" alt="{{ a.original_name }}" loading="lazy" decoding="async"
+                   style="display:block;width:100%;height:auto;object-fit:contain;aspect-ratio:auto;background:#f3f4f6;">
+ 
+              {% if album.cover_asset_id == a.id %}
+                <span class="badge badge-cover" title="Cover">★ Cover</span>
+              {% endif %}
+            </div>
+            <figcaption class="caption" title="{{ a.original_name }}">
+              <div class="name">{{ a.original_name }}</div>
+              <div class="meta">{{ a.width or "?" }}×{{ a.height or "?" }} · {{ (a.size or 0) // 1024 }} KB</div>
+            </figcaption>
+            <div class="asset-actions">
+              <form action="/admin/assets/{{ a.id }}/move" method="post"><input type="hidden" name="direction" value="top"><button title="إلى الأول">⤒</button></form>
+              <form action="/admin/assets/{{ a.id }}/move" method="post"><input type="hidden" name="direction" value="up"><button title="أعلى">↑</button></form>
+              <form action="/admin/assets/{{ a.id }}/move" method="post"><input type="hidden" name="direction" value="down"><button title="أسفل">↓</button></form>
+              <form action="/admin/assets/{{ a.id }}/move" method="post"><input type="hidden" name="direction" value="bottom"><button title="إلى الأخير">⤓</button></form>
+              <form action="/admin/assets/{{ a.id }}/rotate" method="post"><input type="hidden" name="dir" value="ccw"><button title="تدوير يسار">⟲</button></form>
+              <form action="/admin/assets/{{ a.id }}/rotate" method="post"><input type="hidden" name="dir" value="cw"><button title="تدوير يمين">⟳</button></form>
+              {% if album.cover_asset_id == a.id %}
+                <form action="/admin/albums/{{ album.id }}/cover/clear" method="post"><button title="إلغاء الغلاف">★</button></form>
+              {% else %}
+                <form action="/admin/albums/{{ album.id }}/cover/{{ a.id }}" method="post"><button title="تعيين كغلاف">☆</button></form>
+              {% endif %}
+              <form action="/admin/assets/{{ a.id }}/delete" method="post" onsubmit="return confirm('حذف نهائي؟');"><button title="حذف">🗑</button></form>
+            </div>
           </figure>
         {% endfor %}
       </div>
     {% endif %}
   </section>
 
-  <!-- ========== Share Link Section ========== -->
+  <!-- Share -->
   <section class="section">
     <h3>Create Share Link</h3>
     <form action="/admin/albums/{{ album.id }}/share" method="post" class="form-box">
@@ -48,20 +71,12 @@
         <label for="expires_at">Expires At <span class="hint">(ISO format)</span></label>
         <input id="expires_at" type="text" name="expires_at" placeholder="2025-09-03T23:59:59" />
       </div>
-
       <div class="form-group">
         <label for="password">Password <span class="optional">(optional)</span></label>
         <input id="password" type="password" name="password" />
       </div>
-
-      <label class="checkline">
-        <input type="checkbox" name="allow_zip" checked />
-        <span>Allow ZIP download</span>
-      </label>
-
-      <div class="form-actions">
-        <button type="submit" class="btn">Create Share</button>
-      </div>
+      <label class="checkline"><input type="checkbox" name="allow_zip" checked /><span>Allow ZIP download</span></label>
+      <div class="form-actions"><button type="submit" class="btn">Create Share</button></div>
     </form>
   </section>
 </section>

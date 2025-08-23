@@ -17,3 +17,4 @@ zipstream-ng
 pillow-avif-plugin
 
 pillow-avif-plugin
+alembic

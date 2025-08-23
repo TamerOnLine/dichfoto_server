@@ -1,0 +1,66 @@
+/* =========================================================
+   Gallery Gap Config  —  تحكّم كامل بالمسافات للمعرض
+   - default variables (global)
+   - per-axis control (X/Y)
+   - ready presets as classes
+   - responsive presets (اختياري)
+   ========================================================= */
+
+/* قيم افتراضية عامة (تسري على كل الألبومات) */
+:root{
+  /* مسافة موحّدة */
+  --gallery-gap: 8px;
+
+  /* تحكّم منفصل للمحورين (إن رغبت) */
+  --gallery-gap-x: var(--gallery-gap);
+  --gallery-gap-y: var(--gallery-gap);
+
+  /* لا علاقة مباشرة بالمسافة، لكنها مطلوبة لطريقة Grid المرنة */
+  --gallery-auto-rows: 8px;
+}
+
+/* ربط المتغيرات مع المعرض (تأثير فوري) */
+.masonry{
+  /* لو كان عندك --gap/--gap-x/--gap-y في style.css، نحقن قيمنا هنا */
+  --gap:   var(--gallery-gap);
+  --gap-x: var(--gallery-gap-x);
+  --gap-y: var(--gallery-gap-y);
+
+  /* Grid gaps من محاور منفصلة */
+  column-gap: var(--gap-x);
+  row-gap:    var(--gap-y);
+
+  /* وحدة الصف الأساسية (لطريقة الموزاييك) */
+  grid-auto-rows: var(--gallery-auto-rows);
+}
+
+/* ============ Presets جاهزة تغيّرها بإضافة كلاس على .masonry ============ */
+/* موحّدة (X=Y) */
+.masonry.gap-none { --gallery-gap: 0px; }
+.masonry.gap-2    { --gallery-gap: 2px; }
+.masonry.gap-4    { --gallery-gap: 4px; }
+.masonry.gap-6    { --gallery-gap: 6px; }
+.masonry.gap-8    { --gallery-gap: 8px; }
+.masonry.gap-10   { --gallery-gap: 10px; }
+.masonry.gap-12   { --gallery-gap: 12px; }
+.masonry.gap-14   { --gallery-gap: 14px; }
+.masonry.gap-16   { --gallery-gap: 16px; }
+
+/* محور محدّد */
+.masonry.gapx-12 { --gallery-gap-x: 12px; }
+.masonry.gapx-8  { --gallery-gap-x: 8px;  }
+.masonry.gapx-4  { --gallery-gap-x: 4px;  }
+
+.masonry.gapy-12 { --gallery-gap-y: 12px; }
+.masonry.gapy-8  { --gallery-gap-y: 8px;  }
+.masonry.gapy-4  { --gallery-gap-y: 4px;  }
+
+/* ============ (اختياري) Presets استجابة حسب العرض ============ */
+/* أضف كلاس gap-responsive إلى .masonry لتفعيل هذه القيم */
+.masonry.gap-responsive { --gallery-gap: 6px; }
+@media (min-width: 900px){
+  .masonry.gap-responsive { --gallery-gap: 10px; }
+}
+@media (min-width: 1600px){
+  .masonry.gap-responsive { --gallery-gap: 14px; }
+}

@@ -18,6 +18,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parents[1]
 
 
+
+
 class Settings(BaseSettings):
     """
     Application configuration settings.

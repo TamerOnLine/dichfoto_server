@@ -34,6 +34,9 @@ h2 {
   /* ظلال */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+
+  /* حجم المصغّرات */
+  --admin-thumb-h: 120px;
 }
 
 * {
@@ -240,13 +243,13 @@ h3 {
 .asset-card img {
   display: block;
   width: 100%;
-  height: 160px;
+  height: var(--admin-thumb-h);  /* ← الآن 120px بدل 160px */
   object-fit: cover;
-  border-radius: 0;   /* زوايا قائمة */
+  border-radius: 0;
 }
 
 .caption {
-  border-radius: 0;   /* يتطابق مع الصورة */
+  border-radius: 0;
 }
 
 /* ========================================================================== 
@@ -287,3 +290,16 @@ h3 {
   font-family: var(--font-heading);
   color: var(--color-brand);
 }
+
+/* ========================================================================== 
+   بطاقات الأصول الجديدة 
+   ========================================================================== */
+.asset-card{position:relative;display:flex;flex-direction:column;gap:.5rem;padding:.5rem}
+.thumb-wrap{position:relative}
+.thumb-wrap img{display:block;width:100%;height:var(--admin-thumb-h);object-fit:cover;border-radius:0}
+.badge-cover{position:absolute;top:.5rem;left:.5rem;background:#ffd43b;color:#222;padding:.15rem .45rem;border-radius:.4rem;font-weight:600}
+.caption .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caption .meta{opacity:.7;font-size:.9em}
+.asset-actions{display:flex;gap:.4rem;flex-wrap:wrap}
+.asset-actions form{display:inline}
+.asset-actions button{padding:.25rem .5rem}

@@ -1,90 +1,134 @@
 {% extends 'layout.html' %}
-
+{% block title %}{{ album.title }} – {{ site_title }}{% endblock %}
 {% block header_class %}hide{% endblock %}
 
-{# 🔹 Preload للـ hero image #}
-{% if assets|length > 0 %}
-  {% set hero = assets[0] %}
-  {% set hero_480  = hero.webp_480  or hero.jpg_480  or hero.thumb %}
-  {% set hero_960  = hero.webp_960  or hero.jpg_960  or hero.thumb %}
-  {% set hero_1280 = hero.webp_1280 or hero.jpg_1280 or hero.url %}
-  {% set hero_1920 = hero.webp_1920 or hero.jpg_1920 or hero.url %}
-  {% block head %}
-    <link rel="preload" as="image"
-          imagesrcset="{{ hero_480 }} 480w, {{ hero_960 }} 960w, {{ hero_1280 }} 1280w, {{ hero_1920 }} 1920w"
-          imagesizes="100vw">
-  {% endblock %}
-{% endif %}
-
 {% block content %}
-  {% if locked %}
-    <section class="container">
-      <p>This album is protected. Enter the password to continue.</p>
-      <form action="/s/{{ share.slug }}/unlock" method="post" class="form-box">
-        <label for="password">Password</label>
-        <input id="password" type="password" name="password" required />
-        <button class="btn" type="submit">Unlock</button>
+{% if locked %}
+  <section class="auth-wrap">
+    <div class="auth-card">
+      <h1 class="auth-title serif">{{ album.title }}</h1>
+      {% if error %}<div class="auth-alert" role="alert">Incorrect password. Please try again.</div>{% endif %}
+      <form action="/s/{{ share.slug }}/unlock" method="post" class="auth-form" novalidate>
+        <label class="auth-label" for="password">Password</label>
+        <input id="password" name="password" type="password" required class="auth-input" placeholder="••••••••" />
+        <button class="auth-btn" type="submit">Unlock</button>
       </form>
-    </section>
-  {% else %}
-
-    {% if assets|length > 0 %}
-      {% set hero = assets[0] %}
-      <section id="hero" class="hero" style="--lqip: url('{{ hero.lqip }}');">
-        <picture>
-          {% if hero.avif_480 %}
-          <source type="image/avif"
-                  srcset="{{ hero.avif_480 }} 480w, {{ hero.avif_960 }} 960w, {{ hero.avif_1280 }} 1280w, {{ hero.avif_1920 }} 1920w"
-                  sizes="100vw">
-          {% endif %}
-          {% if hero.webp_480 %}
-          <source type="image/webp"
-                  srcset="{{ hero.webp_480 }} 480w, {{ hero.webp_960 }} 960w, {{ hero.webp_1280 }} 1280w, {{ hero.webp_1920 }} 1920w"
-                  sizes="100vw">
-          {% endif %}
-          <img class="hero-img"
-               src="{{ hero_960 }}"
-               srcset="{{ hero_480 }} 480w, {{ hero_960 }} 960w, {{ hero_1280 }} 1280w, {{ hero_1920 }} 1920w"
-               sizes="100vw"
-               width="{{ hero.width }}" height="{{ hero.height }}"
-               alt="{{ album.title }}"
-               fetchpriority="high" loading="eager" decoding="async" />
-        </picture>
-        <div class="hero-actions">
-          <a class="icon-btn" href="/s/{{ share.slug }}/download" title="Download all">
-            ⬇
-          </a>
-        </div>
-        <div class="hero-overlay">
-          <h2 class="hero-title">{{ album.title }}</h2>
-        </div>
-      </section>
-    {% endif %}
-
-    <div class="container">
-      <div class="toolbar">
-        <a class="btn" href="/s/{{ share.slug }}/download">Download all as ZIP</a>
-      </div>
-
-      {% if assets|length == 0 %}
-        <p>No files available.</p>
-      {% else %}
-        <div id="gallery" class="jg">
-          {% for a in assets[1:] %}
-            <a class="jg-item" href="{{ a.url }}" target="_blank" rel="noopener">
-              <img src="{{ a.thumb }}"
-                   alt="{{ a.name }}"
-                   {% if loop.index <= 6 %}loading="eager" fetchpriority="high"{% else %}loading="lazy"{% endif %}
-                   decoding="async"
-                   width="{{ a.width }}" height="{{ a.height }}"
-                   data-w="{{ a.width }}" data-h="{{ a.height }}" />
-            </a>
-          {% endfor %}
-        </div>
-      {% endif %}
     </div>
+  </section>
+{% else %}
 
+  {# نجمع الصور من أقرب مصدر ونحوّلها لقائمة صريحة #}
+  {% if assets is defined and assets is not none %}
+    {% set assets_list = assets|list %}
+  {% elif album is defined and album.assets is not none %}
+    {% set assets_list = album.assets|list %}
+  {% else %}
+    {% set assets_list = [] %}
   {% endif %}
 
-  <script src="/static/justified.js?v=18" defer></script>
+  {# الغلاف: أول صورة إن وُجدت #}
+  {% set hero = assets_list[0] if assets_list|length > 0 else None %}
+  {% include 'partials/_hero.html' %}
+
+  {# المعرض: باقي الصور إن وُجدت #}
+  {% if assets_list|length > 1 %}
+    {% set gallery_assets = assets_list[1:] %}
+  {% else %}
+    {% set gallery_assets = [] %}
+  {% endif %}
+  {% include 'partials/_gallery.html' with context %}
+
+  {# Lightbox: يظهر عند الضغط على صورة #}
+  <div id="lb" class="lb" hidden aria-modal="true" role="dialog">
+    <button class="lb-close" type="button" aria-label="Close">✕</button>
+
+    <div class="lb-stage">
+      <img id="lb-img" alt="" />
+    </div>
+
+    <div class="lb-toolbar" role="toolbar" aria-label="Image actions">
+      <button class="lb-btn" data-act="prev" aria-label="Previous">⟵</button>
+      <button class="lb-btn" data-act="next" aria-label="Next">⟶</button>
+      <div class="lb-spacer"></div>
+      <button class="lb-btn" data-act="download" aria-label="Download">⬇️</button>
+      <button class="lb-btn" data-act="open" aria-label="Open in new tab">🔗</button>
+      <button class="lb-btn" data-act="copy" aria-label="Copy link">📋</button>
+    </div>
+  </div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+  {{ super() }}
+  <script>
+    // Lightbox بسيط
+    (function () {
+      const lb = document.getElementById('lb');
+      if (!lb) return;
+
+      const imgEl = document.getElementById('lb-img');
+      const closeBtn = lb.querySelector('.lb-close');
+      const toolbar = lb.querySelector('.lb-toolbar');
+
+      let links = [];
+      function collectLinks() {
+        links = Array.from(document.querySelectorAll('#gallery a[data-full]'));
+      }
+      collectLinks();
+
+      let idx = -1;
+
+      function openAt(i) {
+        if (i < 0 || i >= links.length) return;
+        idx = i;
+        const href = links[idx].dataset.full || links[idx].getAttribute('href');
+        imgEl.src = href;
+        imgEl.alt = links[idx].dataset.name || '';
+        lb.hidden = false;
+        document.body.style.overflow = 'hidden';
+        toolbar.querySelector('[data-act="prev"]').disabled = (idx <= 0);
+        toolbar.querySelector('[data-act="next"]').disabled = (idx >= links.length - 1);
+        // preload next
+        const pre = new Image();
+        if (idx + 1 < links.length) pre.src = links[idx + 1].dataset.full || links[idx + 1].href;
+      }
+      function close() { lb.hidden = true; imgEl.src = ''; document.body.style.overflow = ''; }
+      function next()  { if (idx < links.length - 1) openAt(idx + 1); }
+      function prev()  { if (idx > 0) openAt(idx - 1); }
+
+      // فتح عند الضغط على صورة
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('#gallery a[data-full]');
+        if (!a) return;
+        e.preventDefault();
+        collectLinks();
+        const i = links.indexOf(a);
+        if (i !== -1) openAt(i);
+      });
+
+      // أزرار الشريط
+      toolbar.addEventListener('click', async (e) => {
+        const b = e.target.closest('.lb-btn'); if (!b) return;
+        const act = b.dataset.act, url = imgEl.src;
+        if (act === 'next') return next();
+        if (act === 'prev') return prev();
+        try {
+          if (act === 'download') { const a = document.createElement('a'); a.href = url; a.download = ''; document.body.appendChild(a); a.click(); a.remove(); }
+          else if (act === 'open') { window.open(url, '_blank', 'noopener'); }
+          else if (act === 'copy') { await navigator.clipboard.writeText(url); const old=b.textContent; b.textContent='✅'; setTimeout(()=>b.textContent=old,900); }
+        } catch(err){ console.warn(err); alert('Action failed'); }
+      });
+
+      // إغلاق
+      closeBtn.addEventListener('click', close);
+      lb.addEventListener('click', (e) => { if (e.target === lb) close(); });
+      document.addEventListener('keydown', (e) => {
+        if (lb.hidden) return;
+        if (e.key==='Escape') close();
+        if (e.key==='ArrowRight') next();
+        if (e.key==='ArrowLeft') prev();
+      });
+    })();
+  </script>
 {% endblock %}

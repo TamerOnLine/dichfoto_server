@@ -1,0 +1,80 @@
+{# حركة السهم داخل نفس الملف #}
+<style>
+@keyframes arrow-bounce {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-6px); }
+}
+</style>
+
+{# الغلاف: صورة + بيانات فقط (بدون أزرار) #}
+<section class="hero hero--cover"
+         aria-label="Cover"
+         style="/* املأ الشاشة وألغِ الـ aspect-ratio الثابت */
+                height:100svh; min-height:100vh; aspect-ratio:auto;">
+  {% if hero %}
+    <div class="hero-media" style="width:100%; height:100%;">
+      <img
+        class="hero-img"
+        src="{{ hero.thumb or hero.url }}"
+        alt="{{ album.title }}"
+        fetchpriority="high" loading="eager" decoding="async"
+        style="width:100%; height:100%; object-fit:cover; object-position:center;"
+        {% if hero.width and hero.height %}width="{{ hero.width }}" height="{{ hero.height }}"{% endif %}
+      />
+    </div>
+
+    <div class="hero-overlay">
+      <div class="hero-meta"
+           style="
+             position:absolute;
+             left:50%;
+             top:calc(100% * 2 / 3);   /* بداية الثلث الأخير */
+             transform:translateX(-50%);
+             width:min(1100px,90%);
+             text-align:center;
+             pointer-events:auto;      /* مهم: لتفعيل النقر على السهم داخل overlay */
+           ">
+
+        <h1 class="hero-title serif">{{ album.title }}</h1>
+
+        {% if album.photographer %}
+          <p class="hero-sub">
+            {% if album.photographer_url %}
+              <a href="{{ album.photographer_url }}" target="_blank" rel="noopener">{{ album.photographer }}</a>
+            {% else %}
+              {{ album.photographer }}
+            {% endif %}
+          </p>
+        {% endif %}
+
+        {% if album.event_date %}
+          <p class="hero-date">{{ album.event_date.strftime('%d.%m.%Y') }}</p>
+        {% endif %}
+
+        {# السهم أسفل البيانات مباشرة #}
+        <a href="#gallery"
+           aria-label="الانتقال إلى صور الألبوم"
+           onclick="document.getElementById('gallery')?.scrollIntoView({behavior:'smooth',block:'start'}); return false;"
+           style="
+             margin-top:12px;
+             display:inline-flex; align-items:center; justify-content:center;
+             width:44px; height:44px; border-radius:999px;
+             background:rgba(0,0,0,.45); color:#fff; text-decoration:none;
+             backdrop-filter:blur(6px);
+             animation:arrow-bounce 1.5s infinite ease-in-out;
+           ">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+
+      </div>
+    </div>
+
+  {% else %}
+    <div class="hero-empty">
+      <h1 class="hero-title serif">{{ album.title }}</h1>
+      <p class="hero-sub">لا توجد صور بعد</p>
+    </div>
+  {% endif %}
+</section>

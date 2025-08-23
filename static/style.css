@@ -1,163 +1,73 @@
-/* ==========================================================================
-   الأساسيات
-   ========================================================================== */
-:root {
-  /* ألوان */
-  --color-bg: #ffffff;
-  --color-fg: #0f172a;
-  --color-muted: #64748b;
-  --color-brand: #2563eb;
-  --color-brand-dark: #1d4ed8;
-  --color-border: #e2e8f0;
-  --color-surface: #f8fafc;
+/* === Base === */
+:root{
+  --container: min(1300px, 100% - 24px);
+  --fg:#0f172a; --bg:#fff; --muted:#64748b; --border:#e2e8f0;
+  --radius:0px; --radius-img:0px;
+  --shadow-md:0 6px 16px rgba(15,23,42,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.container{width:var(--container);margin-inline:auto}
+.muted{color:var(--muted)}
+.serif{font-family:ui-serif,Georgia,Times,serif}
+img{max-width:100%;display:block;height:auto}
 
-  /* خطوط */
-  --font-main: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Poppins', sans-serif;
+/* === Auth (مختصر) === */
+.auth-wrap{display:grid;min-height:70vh;place-items:center;padding:24px}
+.auth-card{width:min(480px,100%);background:#f8fafc;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-md);padding:20px}
+.auth-title{margin:0 0 8px}.auth-alert{background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:10px;border-radius:8px;margin-bottom:12px}
+.auth-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
+.auth-btn{margin-top:12px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
 
-  /* قياسات */
-  --radius: 12px;
-  --gap: 8px;
+/* === Hero (بدون أزرار) === */
+.hero{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#000}
+.hero-media,.hero-img{position:relative;z-index:1;width:100%;height:100%}
+.hero-img{object-fit:cover}
+.hero-overlay{position:absolute;inset:0;z-index:2;background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));display:grid;align-items:end}
+.hero-meta{width:min(1100px,90%);margin:0 auto 18px;text-align:center;color:#e5e7eb}
+.hero-date{margin:0 0 6px;font-size:clamp(12px,2.8vw,18px);text-shadow:0 2px 8px rgba(0,0,0,.45)}
+.hero-title{margin:0 0 8px;font-weight:600;line-height:.95;font-size:clamp(28px,6vw,60px);text-shadow:0 4px 18px rgba(0,0,0,.35)}
+.hero-sub{margin:0;font-size:clamp(13px,2.2vw,16px);text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.hero-empty{display:grid;place-items:center;width:100%;height:100%;color:#e5e7eb}
 
-  /* ظلال */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+/* === Gallery (CSS Columns أبسط، بدون JS) === */
+.gallery{width:var(--container);margin:18px auto}
+.masonry{
+  column-count: var(--cols, 3);
+  column-gap: var(--gap, 8px);     /* ← المسافة بين الصور */
+}
+/* أعمدة استجابة — تُستبدل بقيم الـ inline إذا وُجدت */
+@media (min-width:0px){.masonry{--cols: var(--cols-0,2)}}
+@media (min-width:480px){.masonry{--cols: var(--cols-480,2)}}
+@media (min-width:640px){.masonry{--cols: var(--cols-640,3)}}
+@media (min-width:900px){.masonry{--cols: var(--cols-900,3)}}
+@media (min-width:1200px){.masonry{--cols: var(--cols-1200,5)}}
+@media (min-width:1600px){.masonry{--cols: var(--cols-1600,6)}}
+
+.card{break-inside:avoid;margin:0 0 var(--gap,8px);border-radius:var(--radius-img);overflow:hidden;background:#000}
+.card img{width:100%;height:auto;display:block}
+
+/* === Lightbox === */
+.lb[hidden]{display:none!important}
+.lb{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.9);display:grid;grid-template-rows:1fr auto auto;gap:12px;padding:clamp(12px,3vw,24px)}
+.lb-stage{display:grid;place-items:center}
+.lb-stage img{max-width:100%;max-height:80vh;object-fit:contain}
+.lb-close{position:absolute;top:10px;right:10px;border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+.lb-toolbar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:10px;border-radius:12px;backdrop-filter:blur(6px)}
+.lb-btn{border:0;cursor:pointer;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.14);color:#fff}
+.lb-btn:disabled{opacity:.4;cursor:not-allowed}
+.lb-spacer{flex:1}
+
+/* === Print === */
+@media print{
+  header, footer, .lb, .auth-wrap{display:none!important}
+  .hero{aspect-ratio:auto}
+  .gallery{width:100%;margin:0}
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* إخفاء الهيدر عندما يحمل الكلاس hide */
+header.hide{ display: none !important; }
 
-body {
-  font-family: var(--font-main);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
+/* إزالة أي مسافة علوية للكونتنت عندما نخفي الهيدر */
+main.container{ padding-top: 0 !important; }
 
-/* ==========================================================================
-   هيكل عام
-   ========================================================================== */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 var(--gap);
-}
-
-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: 1rem 0;
-  box-shadow: var(--shadow-sm);
-}
-
-header h1 {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  color: var(--color-brand);
-}
-
-footer {
-  margin-top: 3rem;
-  padding: 1.5rem 0;
-  text-align: center;
-  font-size: 0.9rem;
-  color: var(--color-muted);
-  border-top: 1px solid var(--color-border);
-}
-
-/* ==========================================================================
-   أزرار
-   ========================================================================== */
-.btn {
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  background: var(--color-brand);
-  color: #fff;
-  border-radius: var(--radius);
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-.btn:hover {
-  background: var(--color-brand-dark);
-}
-
-/* ==========================================================================
-   فورمات
-   ========================================================================== */
-form {
-  display: grid;
-  gap: var(--gap);
-  max-width: 400px;
-}
-
-input, select, textarea {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font: inherit;
-}
-
-label {
-  font-weight: 500;
-}
-
-/* ==========================================================================
-   جاليري الصور
-   ========================================================================== */
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--gap);
-  margin-top: 2rem;
-}
-
-.gallery img {
-  border-radius: 0;   /* زوايا قائمة */
-  box-shadow: var(--shadow-md);
-}
-
-.gallery img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-}
-
-/* ==========================================================================
-   كروت
-   ========================================================================== */
-/* صور داخل الكروت */
-.card img {
-  border-radius: 0;   /* زوايا قائمة */
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
-}
-
-.card h3 {
-  font-family: var(--font-heading);
-  margin-bottom: 0.5rem;
-}
-
-/* ==========================================================================
-   ريسبونسيف
-   ========================================================================== */
-@media (max-width: 768px) {
-  header h1 {
-    font-size: 1.3rem;
-  }
-
-  .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .gallery {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-}

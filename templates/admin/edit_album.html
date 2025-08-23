@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<section class="container">
+  <h2>Edit Album</h2>
+
+  <form action="/admin/albums/{{ album.id }}/update" method="post" class="form-box">
+    <div class="form-group">
+      <label for="title">Album Title</label>
+      <input id="title"
+             type="text"
+             name="title"
+             value="{{ album.title }}"
+             required />
+    </div>
+
+    <div class="form-group">
+      <label for="photographer">Photographer <span class="optional">(optional)</span></label>
+      <input id="photographer"
+             type="text"
+             name="photographer"
+             value="{{ album.photographer or '' }}" />
+    </div>
+
+    <div class="form-group">
+      <label for="photographer_url">Photographer URL <span class="optional">(optional)</span></label>
+      <input id="photographer_url"
+             type="url"
+             name="photographer_url"
+             placeholder="https://example.com"
+             value="{{ album.photographer_url or '' }}" />
+    </div>
+
+    <div class="form-group">
+      <label for="event_date">Event Date <span class="hint">(dd.mm.yyyy)</span></label>
+      <input id="event_date"
+             type="text"
+             name="event_date"
+             placeholder="23.08.2025"
+             value="{{ album.event_date.strftime('%d.%m.%Y') if album.event_date else '' }}"
+             autocomplete="off" />
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Save Changes</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

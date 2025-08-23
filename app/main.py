@@ -5,7 +5,7 @@ from starlette.responses import FileResponse
 
 from .config import settings
 from .database import engine, Base
-from .routers import admin, public
+from .routers import admin, public, likes
 
 # سجل أنواع الـ MIME التي قد لا تكون مضافة افتراضيًا
 import mimetypes
@@ -30,6 +30,9 @@ class StaticFilesCached(StaticFiles):
 # ===== FastAPI setup =====
 app = FastAPI(title=settings.SITE_TITLE)
 
+media_root = str(settings.STORAGE_DIR)
+app.mount("/media", StaticFilesCached(directory=media_root), name="media")
+
 # إنشاء الجداول (إن لم تكن موجودة)
 Base.metadata.create_all(bind=engine)
 
@@ -46,9 +49,13 @@ app.mount("/static", StaticFilesCached(directory="static"), name="static")
 # الروترات
 app.include_router(admin.router)
 app.include_router(public.router)
+app.include_router(likes.router)
 
 
 @app.get("/")
 def root():
     """Root endpoint to confirm service is running."""
     return {"ok": True, "message": "Client Gallery running", "admin": "/admin"}
+
+
+print("[DB URL]", settings.DATABASE_URL)

@@ -1,0 +1,34 @@
+{% extends 'layout.html' %}
+{% block content %}
+<section class="container">
+  <h2>Albums</h2>
+
+  <p><a class="btn" href="/admin/albums/new">➕ Create New Album</a></p>
+
+  <table class="table" style="width:100%;border-collapse:collapse;margin-top:16px;">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:8px;border-bottom:1px solid #ccc;">Title</th>
+        <th style="text-align:left;padding:8px;border-bottom:1px solid #ccc;">Photographer</th>
+        <th style="text-align:left;padding:8px;border-bottom:1px solid #ccc;">Event Date</th>
+        <th style="padding:8px;border-bottom:1px solid #ccc;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in albums %}
+      <tr>
+        <td style="padding:8px;border-bottom:1px solid #eee;">{{ a.title }}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">{{ a.photographer or '' }}</td>
+        <td style="padding:8px;border-bottom:1px solid #eee;">
+          {{ a.event_date.strftime("%Y-%m-%d") if a.event_date else '' }}
+        </td>
+        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">
+          <a class="btn outline" href="/admin/albums/{{ a.id }}">View</a>
+          <a class="btn outline" href="/admin/albums/{{ a.id }}/edit">Edit</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

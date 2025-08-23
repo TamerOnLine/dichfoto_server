@@ -1,42 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="ar" dir="ltr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ site_title }}</title>
 
-  <!-- 🔗 Preconnect لتسريع تحميل الصور أو الأصول من CDN -->
-  <link rel="preconnect" href="https://cdn.yourdomain.com" crossorigin>
+  <title>{% block title %}{{ site_title }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}معرض صور احترافي{% endblock %}" />
 
-  <!-- ✅ CSS الأساسي -->
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="/static/admin.css" />
-  <link rel="stylesheet" href="/static/public.css" />
-  <link rel="stylesheet" href="/static/share.min.css" />
+  <link rel="icon" href="/static/favicon.ico" />
+  <link rel="stylesheet" href="/static/style.css?v=42" />
 
-  {# ✅ بلوك مخصص لأي head إضافي (preload, meta, css إضافي) #}
-  {% block head %}{% endblock %}
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
-  <a href="#main" class="sr-only">Skip to content</a>
-
   <header class="{% block header_class %}{% endblock %}">
     <div class="container">
-      <h1>{{ site_title }}</h1>
+      <a class="brand" href="/"><strong>{{ site_title }}</strong></a>
+      <nav class="nav">
+        <a href="/">الرئيسية</a>
+        <a href="/admin">لوحة التحكم</a>
+      </nav>
     </div>
   </header>
 
-  <main id="main">
+  <main class="container">
     {% block content %}{% endblock %}
   </main>
 
   <footer>
     <div class="container">
-      <small>Built with FastAPI • {{ site_title }}</small>
+      <small>© Dich Foto • Powered by MystroTamer</small>
     </div>
   </footer>
 
-  {# ✅ بلوك مخصص لأي سكربتات إضافية #}
-  {% block scripts %}{% endblock %}
+  {% block scripts_extra %}{% endblock %}
 </body>
 </html>

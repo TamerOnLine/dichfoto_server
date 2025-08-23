@@ -1,0 +1,27 @@
+{# المعرض الشبكي — Grid مرنة: صور فقط، الأزرار داخل Lightbox عند التكبير #}
+<section id="gallery" class="gallery" aria-label="Gallery">
+  {% if gallery_assets and gallery_assets|length > 0 %}
+    <div class="masonry"
+         style="--gap:8px; /* المسافة بين الصور */
+                --cols-0:2; --cols-480:2; --cols-640:3;
+                --cols-900:3; --cols-1200:5; --cols-1600:6;">
+      {% for a in gallery_assets %}
+        <figure class="card">
+          <a href="{{ a.url }}"
+             data-full="{{ a.url }}"
+             data-name="{{ a.original_name or a.name }}">
+            <img
+              src="{{ a.thumb or a.url }}"
+              alt="{{ a.name or album.title }}"
+              loading="lazy"
+              decoding="async"
+              {% if a.width and a.height %}width="{{ a.width }}" height="{{ a.height }}"{% endif %}
+            />
+          </a>
+        </figure>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted" style="text-align:center;margin:24px 0">لا توجد صور في المعرض بعد.</p>
+  {% endif %}
+</section>
