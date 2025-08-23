@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # ===== Core =====
     DATABASE_URL: str = f"sqlite:///{(BASE_DIR / 'app.db').as_posix()}"
     SECRET_KEY: str = "change-me"      # Put in .env for production
-    ADMIN_PASSWORD: str = "admin123"   # Put in .env for production
+    ADMIN_PASSWORD: str = ""   # Put in .env for production
     SITE_TITLE: str = "Dich Foto"
 
     # ===== Local storage (always available) =====
