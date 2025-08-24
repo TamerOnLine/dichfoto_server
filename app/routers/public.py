@@ -66,8 +66,8 @@ def open_share(request: Request, slug: str, db: Session = Depends(get_db)):
     if sl.password_hash and not request.session.get(f"unlocked:{slug}"):
         return templates.TemplateResponse("public_album.html", {
             "request": request, "album": album, "share": sl,
-            "locked": True, "site_title": settings.SITE_TITLE,
-            "hero": None, "assets": [],
+           "locked": True, "site_title": settings.SITE_TITLE,
+            "hero": None, "gallery_assets": [],
         })
 
     assets_orm = [a for a in album.assets if not a.is_hidden]
@@ -86,7 +86,9 @@ def open_share(request: Request, slug: str, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse("public_album.html", {
         "request": request, "album": album, "share": sl, "locked": False,
-        "site_title": settings.SITE_TITLE, "hero": hero, "assets": others
+        "site_title": settings.SITE_TITLE,
+        "hero": hero,
+        "gallery_assets": others
     })
 
 @router.post("/{slug}/unlock")

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me"      # Put in .env for production
     ADMIN_PASSWORD: str = ""   # Put in .env for production
     SITE_TITLE: str = "Dich Foto"
+
+        # ===== Upload service (NEW) =====
+    
+    UPLOAD_BASE_URL: str = "https://upload.dichfoto.com"
+
+    
+    CORS_ALLOW_ORIGINS: List[str] = ["https://dichfoto.com", "https://www.dichfoto.com"]
 
     # ===== Local storage (always available) =====
     STORAGE_DIR: Path = BASE_DIR / "storage"

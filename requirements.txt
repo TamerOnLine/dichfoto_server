@@ -18,3 +18,5 @@ pillow-avif-plugin
 
 pillow-avif-plugin
 alembic
+psutil
+tabulate

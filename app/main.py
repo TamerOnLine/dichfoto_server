@@ -1,7 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, Request  
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 import mimetypes
 
@@ -35,6 +38,14 @@ app = FastAPI(
     title=settings.SITE_TITLE,
     docs_url=None,
     redoc_url=None
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOW_ORIGINS,  # من config.py
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 # Media + static mounts
@@ -86,16 +97,34 @@ def home():
     """
 
 
-@app.get("/healthz", response_class=JSONResponse)
-def health():
-    """Health check endpoint."""
-    return {"ok": True}
+
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     """robots.txt file."""
     return "User-agent: *\nDisallow: /admin\nDisallow: /docs\nDisallow: /redoc\n"
+
+
+
+# --- Health checks ---
+
+
+
+
+@app.api_route("/healthz", methods=["GET", "HEAD"], include_in_schema=False)
+def health(request: Request):
+    headers = {"Cache-Control": "no-store"}
+    if request.method == "HEAD":
+
+        return Response(status_code=200, headers=headers)
+
+    return JSONResponse({"ok": True}, headers=headers)
+
+
+
+
+
 
 
 print("[DB URL]", settings.DATABASE_URL)

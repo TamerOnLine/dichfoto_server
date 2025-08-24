@@ -23,11 +23,7 @@ from ..services.variants import make_variants
 from ..utils import safe_filename
 from PIL import Image, ImageOps
 
-from app.utils import _parse_dt
-
-
 templates = Jinja2Templates(directory="templates")
-templates.env.globals["settings"] = settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -56,10 +52,10 @@ def _variant_paths(album_id: int, stem: str) -> list[Path]:
 
 
 @router.get("/theme", response_class=HTMLResponse)
-@router.get("/theme/", response_class=HTMLResponse, include_in_schema=False)
 def theme_page(request: Request):
     require_admin(request)
     return templates.TemplateResponse("admin/theme.html", {"request": request})
+
 
 @router.post("/theme/save")
 def theme_save(payload: ThemePayload, request: Request):
@@ -614,7 +610,25 @@ def clear_cover(request: Request, album_id: int, db: Session = Depends(get_db)):
     db.commit()
     return RedirectResponse(url=f"/admin/albums/{album_id}", status_code=303)
 
+@router.get("/albums/{album_id}/edit", response_class=HTMLResponse)
+def edit_album_page(request: Request, album_id: int, db: Session = Depends(get_db)):
+    album = db.query(models.Album).get(album_id)
+    if not album:
+        raise HTTPException(404, "Album not found")
+    return templates.TemplateResponse("admin/edit_album.html", {"request": request, "album": album})
 
+
+from datetime import datetime
+
+def _parse_dt(value: str | None):
+    if not value:
+        return None
+    v = value.strip()
+    try:
+        # يقبل "23.08.2025"
+        return datetime.strptime(v, "%d.%m.%Y")
+    except ValueError:
+        return None
 
 
 
@@ -651,9 +665,7 @@ def update_album(
     db.commit()
     return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=303)
 
-
 @router.get("/albums", response_class=HTMLResponse)
-@router.get("/albums/", response_class=HTMLResponse, include_in_schema=False)
 def list_albums(request: Request, db: Session = Depends(get_db)):
     require_admin(request)
     albums = db.query(models.Album).order_by(models.Album.created_at.desc()).all()
@@ -661,23 +673,3 @@ def list_albums(request: Request, db: Session = Depends(get_db)):
         "admin_album_list.html",
         {"request": request, "albums": albums, "site_title": settings.SITE_TITLE},
     )
-
-@router.head("/albums", include_in_schema=False)
-@router.head("/albums/", include_in_schema=False)
-def albums_head():
-    return Response(status_code=200, headers={"Cache-Control": "no-store"})
-
-
-@router.head("/theme", include_in_schema=False)
-@router.head("/theme/", include_in_schema=False)
-def theme_head():
-    # 200 بدون جسم، يمنع حلقات/أخطاء HEAD
-    return Response(status_code=200, headers={"Cache-Control": "no-store"})
-
-@router.head("/", include_in_schema=False)
-def admin_root_head():
-    return Response(status_code=200, headers={"Cache-Control": "no-store"})
-
-@router.head("/albums/{album_id}", include_in_schema=False)
-def view_album_head(album_id: int):
-    return Response(status_code=200, headers={"Cache-Control": "no-store"})

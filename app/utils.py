@@ -100,3 +100,12 @@ def unique_name(clean: str) -> str:
     """
     p = Path(clean)
     return f"{p.stem}-{uuid.uuid4().hex[:8]}{p.suffix}"
+
+
+
+def _parse_dt(value: str):
+    """حاول تحويل النص إلى datetime"""
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None

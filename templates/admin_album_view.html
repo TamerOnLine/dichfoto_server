@@ -8,19 +8,24 @@
 <section class="container">
   <h2>Album: {{ album.title }}</h2>
 
-  <!-- Upload -->
-  <section class="section">
-    <h3>Upload Files</h3>
-    <form action="/admin/albums/{{ album.id }}/upload" method="post" enctype="multipart/form-data" class="form-box">
-      <div class="form-group">
-        <label for="files">Choose images</label>
-        <input id="files" type="file" name="files" multiple required accept="image/*" />
-      </div>
-      <div class="form-actions">
-        <button type="submit" class="btn">Upload</button>
-      </div>
-    </form>
-  </section>
+<!-- Upload -->
+<section class="section">
+  <h3>Upload Files</h3>
+  <form id="upload-form"
+        method="post"
+        action="{{ settings.UPLOAD_BASE_URL }}/admin/albums/{{ album.id }}/upload"
+        enctype="multipart/form-data"
+        class="form-box">
+    <div class="form-group">
+      <label for="files">Choose images</label>
+      <input id="files" type="file" name="files" multiple required accept="image/*" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">Upload</button>
+    </div>
+  </form>
+</section>
+
 
   <!-- Assets -->
   <section class="section">

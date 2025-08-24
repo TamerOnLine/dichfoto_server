@@ -17,26 +17,17 @@
   </section>
 {% else %}
 
-  {# نجمع الصور من أقرب مصدر ونحوّلها لقائمة صريحة #}
-  {% if assets is defined and assets is not none %}
-    {% set assets_list = assets|list %}
-  {% elif album is defined and album.assets is not none %}
-    {% set assets_list = album.assets|list %}
-  {% else %}
-    {% set assets_list = [] %}
+  {# احرص على وجود القيم حتى لو لم يرسلها الراوتر (منع 500) #}
+  {% set hero = hero|default(None) %}
+  {% set gallery_assets = gallery_assets|default(assets|default([])) %}
+
+  {# الغلاف (اختياري) #}
+  {% if hero %}
+    {% include 'partials/_hero.html' %}
   {% endif %}
 
-  {# الغلاف: أول صورة إن وُجدت #}
-  {% set hero = assets_list[0] if assets_list|length > 0 else None %}
-  {% include 'partials/_hero.html' %}
-
-  {# المعرض: باقي الصور إن وُجدت #}
-  {% if assets_list|length > 1 %}
-    {% set gallery_assets = assets_list[1:] %}
-  {% else %}
-    {% set gallery_assets = [] %}
-  {% endif %}
-  {% include 'partials/_gallery.html' with context %}
+  {# شبكة الصور — يعتمد على partial الذي يقرأ gallery_assets #}
+  {% include 'partials/_gallery.html' %}
 
   {# Lightbox: يظهر عند الضغط على صورة #}
   <div id="lb" class="lb" hidden aria-modal="true" role="dialog">
