@@ -163,7 +163,9 @@ def create_album(
     db.add(album)
     db.commit()
     db.refresh(album)
-    return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
+    dest = request.url_for("view_album", album_id=album.id)
+    return RedirectResponse(url=dest, status_code=302)
+   
 
 
 

@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
+from app.config import settings
 
 
 
@@ -60,7 +61,26 @@ app.mount("/static", StaticFilesCached(directory="static"), name="static")
 Base.metadata.create_all(bind=engine)
 
 # Add session middleware
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+#app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+if settings.ENV == "prod":
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.SECRET_KEY,
+        session_cookie="df_session",
+        domain=".dichfoto.com",
+        same_site="none",
+        https_only=True,
+    )
+else:
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.SECRET_KEY,
+        session_cookie="df_session",
+        domain=None,
+        same_site="lax",
+        https_only=False,
+    )
+
 
 # Routers
 app.include_router(admin.router)
@@ -128,3 +148,4 @@ def health(request: Request):
 
 
 print("[DB URL]", settings.DATABASE_URL)
+print("[ENV]", settings.ENV)
