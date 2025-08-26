@@ -1,8 +1,13 @@
-# pro_venv — Project Scaffold
+# 📸 dichfoto_server
 
-![Build](https://github.com/TamerOnLine/pro_venv/actions/workflows/test-pro_venv.yml/badge.svg)
-![Release](https://img.shields.io/github/v/release/TamerOnLine/pro_venv?style=flat-square)
-![License](https://img.shields.io/github/license/TamerOnLine/pro_venv?style=flat-square)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)
+![License](https://img.shields.io/github/license/TamerOnLine/dichfoto_server)
+![Build](https://github.com/TamerOnLine/dichfoto_server/actions/workflows/test-pro_venv.yml/badge.svg)
+![Last Commit](https://img.shields.io/github/last-commit/TamerOnLine/dichfoto_server)
+![Repo Size](https://img.shields.io/github/repo-size/TamerOnLine/dichfoto_server)
+![Stars](https://img.shields.io/github/stars/TamerOnLine/dichfoto_server?style=social)
+
 
 A one‑shot Python project scaffold. It prepares the virtual environment, installs requirements, generates launch files, and configures VS Code — all from **the project root**.
 

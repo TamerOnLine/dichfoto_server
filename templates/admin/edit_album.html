@@ -34,12 +34,12 @@
     <div class="form-group">
       <label for="event_date">Event Date <span class="hint">(dd.mm.yyyy)</span></label>
       <input id="event_date"
-             type="text"
-             name="event_date"
-             placeholder="23.08.2025"
-             value="{{ album.event_date.strftime('%d.%m.%Y') if album.event_date else '' }}"
-             autocomplete="off" />
+            type="date"
+            name="event_date"
+            value="{{ album.event_date.strftime('%Y-%m-%d') if album.event_date else '' }}"
+            autocomplete="off">
     </div>
+
 
     <div class="form-actions">
       <button type="submit" class="btn">Save Changes</button>
